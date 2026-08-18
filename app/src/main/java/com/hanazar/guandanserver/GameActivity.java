@@ -61,15 +61,7 @@ public class GameActivity extends Activity {
 
             @Override
             public void onHideCustomView() {
-                if (customView == null) return;
-                fullscreenContainer.removeView(customView);
-                customView = null;
-                if (customViewCallback != null) {
-                    customViewCallback.onCustomViewHidden();
-                    customViewCallback = null;
-                }
-                webView.setVisibility(View.VISIBLE);
-                hideSystemUi(false);
+                exitCustomView();
             }
         });
 
@@ -95,12 +87,11 @@ public class GameActivity extends Activity {
     @Override
     public void onBackPressed() {
         if (customView != null) {
-            webView.onPause();
-            // 退出全屏优先
+            // 全屏状态下优先退出全屏
             if (webView != null) {
                 webView.evaluateJavascript("if (document.exitFullscreen) { document.exitFullscreen(); } else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }", null);
             }
-            onHideCustomView();
+            exitCustomView();
             return;
         }
         if (webView != null && webView.canGoBack()) {
@@ -108,6 +99,19 @@ public class GameActivity extends Activity {
         } else {
             super.onBackPressed();
         }
+    }
+
+    /** 移除全屏视图并恢复 WebView（等价于 onHideCustomView 的清理逻辑） */
+    private void exitCustomView() {
+        if (customView == null) return;
+        fullscreenContainer.removeView(customView);
+        customView = null;
+        if (customViewCallback != null) {
+            customViewCallback.onCustomViewHidden();
+            customViewCallback = null;
+        }
+        webView.setVisibility(View.VISIBLE);
+        hideSystemUi(false);
     }
 
     @Override
