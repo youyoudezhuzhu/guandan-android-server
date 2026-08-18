@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 掼蛋 App 图标前景：两叠纸牌 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 左侧红牌 -->
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M38,34 L54,34 L54,50 L38,50 Z" />
+    <path
+        android:fillColor="#FCE4EC"
+        android:pathData="M38,50 L54,50 L54,66 L38,66 Z" />
+    <path
+        android:fillColor="#B71C1C"
+        android:pathData="M42,38 L44,38 L44,40 L42,40 Z" />
+    <path
+        android:fillColor="#B71C1C"
+        android:pathData="M48,38 L50,38 L50,40 L48,40 Z" />
+    <path
+        android:fillColor="#B71C1C"
+        android:pathData="M42,58 L44,58 L44,60 L42,60 Z" />
+    <path
+        android:fillColor="#B71C1C"
+        android:pathData="M48,58 L50,58 L50,60 L48,60 Z" />
+    <!-- 右侧黑牌 -->
+    <path
+        android:fillColor="#37474F"
+        android:pathData="M54,30 L70,30 L70,46 L54,46 Z" />
+    <path
+        android:fillColor="#ECEFF1"
+        android:pathData="M54,46 L70,46 L70,62 L54,62 Z" />
+    <path
+        android:fillColor="#263238"
+        android:pathData="M58,34 L60,34 L60,36 L58,36 Z" />
+    <path
+        android:fillColor="#263238"
+        android:pathData="M64,34 L66,34 L66,36 L64,36 Z" />
+    <path
+        android:fillColor="#263238"
+        android:pathData="M58,54 L60,54 L60,56 L58,56 Z" />
+    <path
+        android:fillColor="#263238"
+        android:pathData="M64,54 L66,54 L66,56 L64,56 Z" />
+    <!-- 中间梅花 -->
+    <path
+        android:fillColor="#FFF8E1"
+        android:pathData="M54,62 C56,64 52,64 54,62 C52,64 56,64 54,62 Z" />
+    <path
+        android:fillColor="#F9A825"
+        android:pathData="M54,58 L54,64 M50,60 L58,62 M58,60 L50,62"
+        android:strokeColor="#F9A825"
+        android:strokeWidth="2" />
+</vector>
