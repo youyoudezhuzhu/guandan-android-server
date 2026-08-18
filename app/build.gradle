@@ -2,6 +2,18 @@ plugins {
     id 'com.android.application'
 }
 
+// versionCode 用 git 提交数自动递增，避免手动改
+def gitVersionCode() {
+    try {
+        def proc = ['git', 'rev-list', '--count', 'HEAD'].execute(null, project.projectDir)
+        proc.waitFor()
+        return proc.text.trim().toInteger()
+    } catch (Exception e) {
+        println "warning: git rev-list failed (${e.message}); versionCode falls back to 1"
+        return 1
+    }
+}
+
 android {
     namespace = 'com.hanazar.guandanserver'
     compileSdk 37
@@ -10,8 +22,8 @@ android {
         applicationId "com.hanazar.guandanserver"
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        versionCode gitVersionCode()
+        versionName "1.1.0"
 
         externalNativeBuild {
             cmake {

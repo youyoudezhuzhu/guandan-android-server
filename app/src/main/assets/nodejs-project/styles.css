@@ -530,3 +530,35 @@ button:focus-visible, .card:focus-visible { outline: 3px solid var(--gold-bright
 }
 
 body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+
+/* ═══ 横屏手机适配（补充）═══
+   原媒体查询用 min-width:761px 判断横屏，导致 CSS 宽度 <761px 的安卓手机
+   （如 667×375、640×360）横屏时误走竖屏高布局，桌面溢出、看起来锁死 16:9。
+   这里用 orientation:landscape + pointer:coarse 精确命中手机横屏，不依赖宽度断点。 */
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 560px) {
+  :root { --card-w:calc(42px + var(--card-size-adjust)); }
+  .game-shell { grid-template-rows:56px minmax(0,calc(100dvh - 80px)) 24px; }
+  .table-wrap { min-height:0; }
+  .topbar { padding:0 16px; }
+  .brand p, .round-meta i, .round-meta div:first-child, .team-badge { display:none; }
+  .brand-mark { width:36px; height:36px; }
+  .new-game-button { width:42px; padding:0; }
+  .new-game-button .button-label { display:none; }
+  .player-top { top:4px; }
+  .opponent-top { top:58px; }
+  .opponent-left, .opponent-right { display:none; }
+  .player-left, .player-right { top:35%; }
+  .match-score { top:8px; right:12px; transform:scale(.85); transform-origin:top right; }
+  .trick-zone { top:86px; width:min(56vw,480px); min-height:100px; transform:translateX(-50%); }
+  .played-by { height:15px; margin-top:3px; }
+  .played-cards { min-height:48px; }
+  .played-cards .card { --card-w:calc(38px + var(--card-size-adjust)); margin-left:-15px; }
+  .combo-label { min-height:19px; margin-top:0; }
+  .action-area { right:12px; bottom:12px; left:auto; transform:none; }
+  .selection-tip { margin-bottom:4px; }
+  .player-you { left:16px; bottom:22px; }
+  .player-you .player-copy { display:none; }
+  .hand-scroll { right:38%; bottom:4px; left:6%; height:calc(92px + var(--hand-top-room)); }
+  .hand { height:calc(85px + var(--hand-top-room)); padding-top:10px; }
+  .game-footer #footer-tip { display:none; }
+}

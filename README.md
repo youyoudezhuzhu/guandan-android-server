@@ -51,7 +51,9 @@ app/libnode/                 # libnode.so + 头文件（CI 下载，不入库）
 
 替换 `app/src/main/assets/nodejs-project/` 下的游戏文件（lan-server.cjs / index.html / script.js / app.js / styles.css）后 push 即可，App 检测到 APK 更新会自动重新复制。
 
-> ⚠️ **定制点提醒**：`index.html` 尾部有我们添加的**全屏按钮**（悬浮 ⛶，Fullscreen API，移动端显示、桌面端隐藏）。升级上游游戏文件后，需重新补上这段定制（`#fullscreen-btn` 按钮 + 内联 style + script），否则手机浏览器访问时没有全屏入口。
+> ⚠️ **定制点提醒**（升级上游游戏文件后需重新补上）：
+> 1. `index.html` 尾部的**全屏按钮**（悬浮 ⛶，Fullscreen API，移动端显示、桌面端隐藏）
+> 2. `styles.css` 末尾的**横屏手机适配**媒体查询（`orientation: landscape and pointer: coarse`，修复 CSS 宽度 <761px 手机横屏时误走竖屏布局、桌面溢出的问题）
 
 ## 已知限制
 
