@@ -286,6 +286,44 @@
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <button id="fullscreen-btn" type="button" aria-label="全屏" title="全屏">⛶</button>
+    <style>
+      #fullscreen-btn {
+        position: fixed; top: 10px; right: 10px; z-index: 99999;
+        width: 42px; height: 42px; border-radius: 50%; border: none;
+        background: rgba(0,0,0,.5); color: #fff;
+        font-size: 19px; line-height: 1;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; opacity: .8; transition: opacity .2s;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #fullscreen-btn:hover, #fullscreen-btn:active { opacity: 1; }
+      #fullscreen-btn.fs { background: rgba(255,255,255,.4); color: #1B5E20; }
+      @media (min-width: 900px) { #fullscreen-btn { display: none; } }
+    </style>
+    <script>
+      (function () {
+        var btn = document.getElementById("fullscreen-btn");
+        var fsEl = function () {
+          return document.fullscreenElement || document.webkitFullscreenElement || null;
+        };
+        var toggle = function () {
+          if (fsEl()) {
+            var exit = document.exitFullscreen || document.webkitExitFullscreen;
+            if (exit) exit.call(document);
+          } else {
+            var el = document.documentElement;
+            var enter = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (enter) enter.call(el);
+          }
+        };
+        btn.addEventListener("click", function (e) { e.stopPropagation(); toggle(); });
+        var sync = function () { btn.classList.toggle("fs", !!fsEl()); };
+        document.addEventListener("fullscreenchange", sync);
+        document.addEventListener("webkitfullscreenchange", sync);
+      })();
+    </script>
     <script src="script.js"></script>
     <script src="app.js"></script>
   </body>
