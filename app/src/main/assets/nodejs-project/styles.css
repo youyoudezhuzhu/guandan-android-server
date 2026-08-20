@@ -584,18 +584,20 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   .opponent-left, .opponent-right { display:none; }
   .player-left, .player-right { top:35%; }
   .match-score { top:8px; right:12px; transform:scale(.85); transform-origin:top right; }
-  .trick-zone { top:80px; width:min(56vw,480px); min-height:100px; transform:translateX(-50%); }
+  .trick-zone { top:90px; width:min(56vw,480px); min-height:100px; transform:translateX(-50%); }
   .played-by { height:15px; margin-top:3px; }
   .played-cards { min-height:48px; }
   .played-cards .card { --card-w:calc(38px + var(--card-size-adjust)); margin-left:-15px; }
   .combo-label { min-height:19px; margin-top:0; }
   .action-area {
     right:auto; left:50%; transform:translateX(-50%);
-    bottom:calc(108px + var(--hand-clearance));
+    bottom:calc(104px + var(--hand-clearance));
     width:auto;
   }
-  .action-buttons { justify-content:center; }
-  .selection-tip { margin-bottom:12px; }
+  .action-buttons { justify-content:center; gap:8px; }
+  .action-buttons .game-button { height:38px; min-width:76px; padding:0 12px; gap:6px; font-size:12px; }
+  .action-buttons .game-button .control-icon { width:16px; height:16px; }
+  .selection-tip { margin-bottom:12px; font-size:12px; }
   .player-you { left:16px; bottom:22px; }
   .player-you .player-copy { display:none; }
   .hand-scroll { left:2%; right:2%; bottom:4px; height:calc(92px + var(--hand-top-room)); }
