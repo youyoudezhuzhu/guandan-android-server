@@ -579,29 +579,32 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   .brand-mark { width:36px; height:36px; }
   .new-game-button { width:42px; padding:0; }
   .new-game-button .button-label { display:none; }
-  .player-top { top:4px; }
-  .opponent-top { top:58px; }
+  /* 顶部对手区压缩（自适应变量 --trick-top 保证不重叠） */
+  .player-top { top:2px; transform:scale(.82); transform-origin:top center; }
+  .opponent-top { top:42px; transform:scale(.82); transform-origin:top center; }
   .opponent-left, .opponent-right { display:none; }
   .player-left, .player-right { top:35%; }
   .match-score { top:8px; right:12px; transform:scale(.85); transform-origin:top right; }
-  .trick-zone { top:90px; width:min(56vw,480px); min-height:100px; transform:translateX(-50%); }
-  .played-by { height:15px; margin-top:3px; }
-  .played-cards { min-height:48px; }
-  .played-cards .card { --card-w:calc(38px + var(--card-size-adjust)); margin-left:-15px; }
-  .combo-label { min-height:19px; margin-top:0; }
+  /* 中间出牌区：位置/高度由 JS 自适应变量驱动，内部压缩防溢出 */
+  .trick-zone { top:var(--trick-top,90px); min-height:var(--trick-h,100px); width:min(56vw,480px); transform:translateX(-50%); }
+  .trick-zone .status-message { font-size:11px; padding:4px 12px; }
+  .played-by { height:12px; margin-top:0; font-size:11px; }
+  .played-cards { min-height:30px; }
+  .played-cards .card { --card-w:calc(34px + var(--card-size-adjust)); --card-h:42px; margin-left:-15px; }
+  .combo-label { min-height:14px; margin-top:0; font-size:11px; }
   .action-area {
     right:auto; left:50%; transform:translateX(-50%);
-    bottom:calc(104px + var(--hand-clearance));
+    bottom:var(--btn-bottom,104px);
     width:auto;
   }
   .action-buttons { justify-content:center; gap:8px; }
   .action-buttons .game-button { height:38px; min-width:76px; padding:0 12px; gap:6px; font-size:12px; }
   .action-buttons .game-button .control-icon { width:16px; height:16px; }
-  .selection-tip { margin-bottom:12px; font-size:12px; }
+  .selection-tip { margin-bottom:8px; font-size:12px; }
   .player-you { left:16px; bottom:22px; }
   .player-you .player-copy { display:none; }
-  .hand-scroll { left:2%; right:2%; bottom:4px; height:calc(92px + var(--hand-top-room)); }
-  .hand { width:max-content; margin:0 auto; height:calc(85px + var(--hand-top-room)); padding-top:10px; }
+  .hand-scroll { left:2%; right:2%; bottom:4px; height:var(--hand-h,92px); }
+  .hand { width:max-content; margin:0 auto; height:calc(var(--hand-h,92px) - 7px); padding-top:10px; }
 
   /* ── 版本标签：悬浮左下角小字 ── */
   .game-footer {
@@ -610,4 +613,16 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     font-size:9px; letter-spacing:.5px; opacity:.55; pointer-events:none;
   }
   .game-footer #footer-tip { display:none; }
+}
+
+/* 极矮横屏（vh ≤ 330）进一步压缩：卡更小、按钮更小、对手区更小 */
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 330px) {
+  .player-top { transform:scale(.72); }
+  .opponent-top { top:36px; transform:scale(.72); }
+  .played-cards .card { --card-w:calc(30px + var(--card-size-adjust)); --card-h:34px; }
+  .trick-zone .status-message { font-size:9px; padding:2px 8px; }
+  .played-by { height:10px; font-size:10px; }
+  .combo-label { min-height:10px; font-size:10px; }
+  .action-buttons .game-button { height:34px; min-width:70px; font-size:11px; }
+  .selection-tip { display:none; }
 }

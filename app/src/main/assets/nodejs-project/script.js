@@ -1,6 +1,69 @@
 (() => {
   "use strict";
 
+  /* ═══ 自适应布局（手机横屏）═══
+     原理：JS 实时读取视口尺寸，把垂直空间按优先级比例分配
+     （顶部对手区 → 中间出牌区 → 提示+按钮 → 手牌区），
+     写入 CSS 变量，CSS 全部引用变量，任何分辨率都不重叠。 */
+  function layoutAdaptive() {
+    const root = document.documentElement;
+    const isLandscapeMobile = matchMedia("(orientation: landscape) and (pointer: coarse) and (max-height: 560px)").matches;
+    if (!isLandscapeMobile) return;
+    const vh = window.innerHeight;
+    const compact = vh <= 330;
+    // 顶部对手区（头像+卡背）底部
+    const topBottom = compact ? 72 : Math.round(Math.max(84, vh * 0.245));
+    // 手牌区高度：视口比例，限幅
+    const handH = compact ? 72 : Math.round(Math.min(112, Math.max(78, vh * 0.28)));
+    // 底部区：手牌 + 间隙 + 按钮 + 提示间距 + 提示文字
+    const btnH = compact ? 34 : 38;
+    const tipH = compact ? 0 : 18;
+    const gap = compact ? 6 : 8;
+    const bottomArea = handH + 4 + gap + btnH + gap + tipH;
+    // 中间出牌区
+    const mid = vh - topBottom - bottomArea;
+    const trickH = Math.round(Math.min(132, Math.max(compact ? 70 : 84, mid * 0.92)));
+    const trickTop = Math.round(topBottom + Math.max(4, (mid - trickH) / 2));
+    // 卡片尺寸微调：视口越矮牌越小
+    const cardAdj = Math.round((vh - (compact ? 300 : 340)) / 12);
+    root.style.setProperty("--trick-top", trickTop + "px");
+    root.style.setProperty("--trick-h", trickH + "px");
+    root.style.setProperty("--btn-bottom", (handH + 4 + 8) + "px");
+    root.style.setProperty("--hand-h", handH + "px");
+    root.style.setProperty("--card-size-adjust", cardAdj + "px");
+    // 兜底修正：渲染后实测出牌区是否压到提示文字，压到则上移
+    requestAnimationFrame(() => {
+      const trick = document.querySelector(".trick-zone");
+      const tip = document.querySelector("#selection-tip");
+      if (!trick || !tip) return;
+      if (getComputedStyle(tip).display === "none") return; // 极矮屏隐藏提示时无需修正
+      const overlap = Math.round(trick.getBoundingClientRect().bottom - tip.getBoundingClientRect().top + 6);
+      if (overlap > 0) {
+        const current = parseFloat(root.style.getPropertyValue("--trick-top")) || trickTop;
+        root.style.setProperty("--trick-top", Math.max(topBottom - 14, current - overlap) + "px");
+      }
+    });
+  }
+  let layoutTimer = null;
+  function requestLayout() {
+    clearTimeout(layoutTimer);
+    layoutTimer = setTimeout(layoutAdaptive, 80);
+  }
+  /* 出牌区内容变化（出牌/过牌）时自动重排，防止内容变高压到按钮/提示 */
+  function watchTrickZone() {
+    const trick = document.querySelector(".trick-zone");
+    if (!trick) return;
+    new MutationObserver(() => {
+      if (matchMedia("(orientation: landscape) and (pointer: coarse) and (max-height: 560px)").matches) requestLayout();
+    }).observe(trick, { childList: true, subtree: true, characterData: true });
+  }
+  window.addEventListener("resize", requestLayout);
+  window.addEventListener("orientationchange", () => setTimeout(layoutAdaptive, 250));
+  window.addEventListener("load", () => {
+    setTimeout(layoutAdaptive, 100);
+    watchTrickZone();
+  });
+
   const SUITS = ["♠", "♥", "♣", "♦"];
   const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   const DEFAULT_NAMES = ["牌手", "周舟", "林默", "许晏"];
