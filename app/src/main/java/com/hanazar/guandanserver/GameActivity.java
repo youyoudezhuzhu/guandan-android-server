@@ -3,6 +3,7 @@ package com.hanazar.guandanserver;
 import android.app.Activity;
 import android.content.Context;
 import android.net.ConnectivityManager;
+import android.net.LinkAddress;
 import android.net.LinkProperties;
 import android.net.Network;
 import android.os.Bundle;
@@ -57,7 +58,8 @@ public class GameActivity extends Activity {
                     for (Network network : cm.getAllNetworks()) {
                         LinkProperties lp = cm.getLinkProperties(network);
                         if (lp == null) continue;
-                        for (InetAddress addr : lp.getAllAddresses()) {
+                        for (LinkAddress la : lp.getLinkAddresses()) {
+                            InetAddress addr = la.getAddress();
                             if (addr instanceof Inet4Address && !addr.isLoopbackAddress() && !addr.isLinkLocalAddress()) {
                                 String ip = addr.getHostAddress();
                                 if (ip != null && !ips.contains(ip)) ips.add(ip);
