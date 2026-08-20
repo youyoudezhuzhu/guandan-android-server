@@ -72,7 +72,7 @@
   const COMBO_NAMES = {
     single: "单张", pair: "对子", triple: "三张", fullhouse: "三带二",
     straight: "顺子", pairs: "三连对", steel: "钢板", bomb: "炸弹",
-    straightflush: "同花顺", jokerbomb: "四王炸", wooden: "木板"
+    straightflush: "同花顺", jokerbomb: "四王炸"
   };
   const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
 
@@ -220,11 +220,6 @@
     if (n === 6 && groups.length === 2 && groups.every(g => g[1] === 3)) {
       const high = consecutiveGroupHigh(unique, 2);
       if (high !== null) return { type: "steel", value: high, size: n };
-    }
-
-    if (n === 9 && groups.length === 3 && groups.every(g => g[1] === 3)) {
-      const high = consecutiveGroupHigh(unique, 3);
-      if (high !== null) return { type: "wooden", value: high, size: n };
     }
     return null;
   }
@@ -437,8 +432,8 @@
       showToast(`${NAMES[last]} 抓到两张大王，抗贡！由 ${NAMES[last]} 先出牌`, "success");
       return;
     }
-    // 进贡牌：末游手中最大的一张（不含红心级牌与大小王）
-    const eligible = state.hands[last].filter(c => !c.joker && !(c.suit === "♥" && c.rank === state.level));
+    // 进贡牌：末游手中除红桃级牌外最大的一张（包含大小王）
+    const eligible = state.hands[last].filter(c => !(c.suit === "♥" && c.rank === state.level));
     if (!eligible.length) {
       state.dealer = leader;
       return;
