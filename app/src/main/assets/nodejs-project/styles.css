@@ -579,9 +579,9 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   .brand-mark { width:36px; height:36px; }
   .new-game-button { width:42px; padding:0; }
   .new-game-button .button-label { display:none; }
-  /* 顶部对手区压缩（自适应变量 --trick-top 保证不重叠） */
-  .player-top { top:2px; transform:scale(.82); transform-origin:top center; }
-  .opponent-top { top:42px; transform:scale(.82); transform-origin:top center; }
+  /* 顶部对手区压缩（保留 translateX(-50%) 居中 + scale 压缩） */
+  .player-top { top:2px; transform:translateX(-50%) scale(.82); transform-origin:center top; }
+  .opponent-top { top:42px; transform:translateX(-50%) scale(.82); transform-origin:center top; }
   .opponent-left, .opponent-right { display:none; }
   .player-left, .player-right { top:35%; }
   .match-score { top:8px; right:12px; transform:scale(.85); transform-origin:top right; }
@@ -617,8 +617,8 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 
 /* 极矮横屏（vh ≤ 330）进一步压缩：卡更小、按钮更小、对手区更小 */
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 330px) {
-  .player-top { transform:scale(.72); }
-  .opponent-top { top:36px; transform:scale(.72); }
+  .player-top { transform:translateX(-50%) scale(.72); transform-origin:center top; }
+  .opponent-top { top:36px; transform:translateX(-50%) scale(.72); transform-origin:center top; }
   .played-cards .card { --card-w:calc(30px + var(--card-size-adjust)); --card-h:34px; }
   .trick-zone .status-message { font-size:9px; padding:2px 8px; }
   .played-by { height:10px; font-size:10px; }
