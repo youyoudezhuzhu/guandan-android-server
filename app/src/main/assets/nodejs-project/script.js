@@ -368,7 +368,7 @@
     if (roundComplete(state.finishOrder)) {
       let next = fromPlayer;
       while (state.finishOrder.length < 4) {
-        next = (next + 1) % 4;
+        next = (next + 3) % 4;
         if (!state.finishOrder.includes(next)) state.finishOrder.push(next);
       }
       endGame();
@@ -382,8 +382,8 @@
   }
 
   function nextActive(from) {
-    let next = (from + 1) % 4;
-    while (state.finishOrder.includes(next)) next = (next + 1) % 4;
+    let next = (from + 3) % 4;
+    while (state.finishOrder.includes(next)) next = (next + 3) % 4;
     return next;
   }
 
@@ -1031,6 +1031,28 @@
       syncAudioButtons();
       showToast(message, state.music ? "success" : message.includes("不支持") ? "error" : "info");
     });
+    /* 手机横屏悬浮菜单：点「菜单」展开/收起下拉面板 */
+    const menuButton = document.getElementById("game-menu-button");
+    const headerActions = document.getElementById("header-actions");
+    if (menuButton && headerActions) {
+      const closeMenu = () => {
+        headerActions.classList.remove("open");
+        menuButton.setAttribute("aria-expanded", "false");
+      };
+      menuButton.addEventListener("click", event => {
+        event.stopPropagation();
+        const open = headerActions.classList.toggle("open");
+        menuButton.setAttribute("aria-expanded", String(open));
+      });
+      headerActions.addEventListener("click", event => {
+        if (event.target.closest("button")) closeMenu();
+      });
+      document.addEventListener("click", event => {
+        if (headerActions.classList.contains("open") &&
+            !event.target.closest("#game-menu-button") &&
+            !event.target.closest("#header-actions")) closeMenu();
+      });
+    }
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         pauseAI();

@@ -54,6 +54,11 @@
 
     <main class="game-shell view-hidden" id="game-screen">
       <header class="topbar">
+        <button class="game-menu-button" id="game-menu-button" type="button" aria-label="菜单" title="菜单" aria-expanded="false">
+          <svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <span class="menu-label">菜单</span>
+        </button>
+
         <div class="brand" aria-label="掼蛋牌桌">
           <span class="brand-mark">掼</span>
           <div>
@@ -68,7 +73,7 @@
           <div><span>当前打</span><strong id="level-rank" class="level-rank">2</strong></div>
         </div>
 
-        <div class="header-actions">
+        <div class="header-actions" id="header-actions">
           <button class="icon-button" id="home-button" type="button" aria-label="返回主页面" title="返回主页面">
             <svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 11 8-7 8 7"/><path d="M6 10v10h12V10M10 20v-6h4v6"/></svg>
           </button>

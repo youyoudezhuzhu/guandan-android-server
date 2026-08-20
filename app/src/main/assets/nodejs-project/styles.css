@@ -110,6 +110,9 @@ button:focus-visible, .card:focus-visible { outline: 3px solid var(--gold-bright
   backdrop-filter: blur(12px);
 }
 
+/* 悬浮菜单按钮：默认隐藏，仅手机横屏时显示 */
+.game-menu-button { display: none; }
+
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-mark {
   width: 43px; height: 43px; display: grid; place-items: center;
@@ -537,9 +540,39 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
    这里用 orientation:landscape + pointer:coarse 精确命中手机横屏，不依赖宽度断点。 */
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 560px) {
   :root { --card-w:calc(42px + var(--card-size-adjust)); }
-  .game-shell { grid-template-rows:56px minmax(0,calc(100dvh - 80px)) 24px; }
+  /* 顶栏与页脚不再占 grid 行：悬浮在画面角落 */
+  .game-shell { grid-template-rows:0 minmax(0,100dvh) 0; }
   .table-wrap { min-height:0; }
-  .topbar { padding:0 16px; }
+
+  /* ── 悬浮菜单：左上角 ── */
+  .topbar {
+    position: fixed; top:8px; left:8px; z-index:60;
+    display:block; width:auto; padding:0; background:transparent;
+    border:none; box-shadow:none; backdrop-filter:none;
+  }
+  .topbar .brand, .topbar .round-meta { display:none; }
+  .game-menu-button {
+    display:inline-flex; align-items:center; gap:7px; height:40px; padding:0 15px 0 12px;
+    border:1px solid rgba(255,255,255,.16); border-radius:20px;
+    background:rgba(2,17,15,.68); color:var(--ink); cursor:pointer;
+    font-size:14px; letter-spacing:2px; backdrop-filter:blur(8px);
+    box-shadow:0 4px 14px rgba(0,0,0,.35);
+  }
+  .game-menu-button .control-icon { width:18px; height:18px; }
+  .header-actions {
+    position:fixed; top:54px; left:8px; z-index:61;
+    display:none; flex-direction:column; align-items:stretch; gap:6px; padding:8px;
+    background:rgba(2,17,15,.92); border:1px solid rgba(216,182,106,.32); border-radius:12px;
+    box-shadow:0 12px 32px rgba(0,0,0,.5); backdrop-filter:blur(10px);
+  }
+  .header-actions.open { display:flex; }
+  .header-actions .icon-button, .header-actions .new-game-button {
+    width:auto; height:42px; justify-content:flex-start; gap:10px; padding:0 12px;
+    border-radius:8px;
+  }
+  .header-actions .new-game-button { width:auto; margin-left:0; }
+  .header-actions .button-label { display:inline; font-size:13px; }
+
   .brand p, .round-meta i, .round-meta div:first-child, .team-badge { display:none; }
   .brand-mark { width:36px; height:36px; }
   .new-game-button { width:42px; padding:0; }
@@ -549,7 +582,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   .opponent-left, .opponent-right { display:none; }
   .player-left, .player-right { top:35%; }
   .match-score { top:8px; right:12px; transform:scale(.85); transform-origin:top right; }
-  .trick-zone { top:86px; width:min(56vw,480px); min-height:100px; transform:translateX(-50%); }
+  .trick-zone { top:80px; width:min(56vw,480px); min-height:100px; transform:translateX(-50%); }
   .played-by { height:15px; margin-top:3px; }
   .played-cards { min-height:48px; }
   .played-cards .card { --card-w:calc(38px + var(--card-size-adjust)); margin-left:-15px; }
@@ -560,5 +593,12 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   .player-you .player-copy { display:none; }
   .hand-scroll { right:38%; bottom:4px; left:6%; height:calc(92px + var(--hand-top-room)); }
   .hand { height:calc(85px + var(--hand-top-room)); padding-top:10px; }
+
+  /* ── 版本标签：悬浮左下角小字 ── */
+  .game-footer {
+    position:fixed; left:10px; bottom:6px; z-index:50;
+    height:auto; padding:2px 8px; background:transparent; border-radius:5px;
+    font-size:9px; letter-spacing:.5px; opacity:.55; pointer-events:none;
+  }
   .game-footer #footer-tip { display:none; }
 }
