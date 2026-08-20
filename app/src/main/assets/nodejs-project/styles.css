@@ -589,12 +589,17 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   .played-cards { min-height:48px; }
   .played-cards .card { --card-w:calc(38px + var(--card-size-adjust)); margin-left:-15px; }
   .combo-label { min-height:19px; margin-top:0; }
-  .action-area { right:12px; bottom:12px; left:auto; transform:none; }
+  .action-area {
+    right:auto; left:50%; transform:translateX(-50%);
+    bottom:calc(112px + var(--hand-clearance));
+    width:auto;
+  }
+  .action-buttons { justify-content:center; }
   .selection-tip { margin-bottom:4px; }
   .player-you { left:16px; bottom:22px; }
   .player-you .player-copy { display:none; }
-  .hand-scroll { right:38%; bottom:4px; left:6%; height:calc(92px + var(--hand-top-room)); }
-  .hand { height:calc(85px + var(--hand-top-room)); padding-top:10px; }
+  .hand-scroll { left:2%; right:2%; bottom:4px; height:calc(92px + var(--hand-top-room)); }
+  .hand { height:calc(85px + var(--hand-top-room)); padding-top:10px; margin:0 auto; }
 
   /* ── 版本标签：悬浮左下角小字 ── */
   .game-footer {
