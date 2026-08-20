@@ -13,7 +13,7 @@ const MIME = {
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml"
 };
-const PUBLIC_FILES = new Set(["index.html", "styles.css", "script.js", "app.js"]);
+const PUBLIC_FILES = new Set(["index.html", "styles.css", "script.js", "app.js", "assets/logo.jpg"]);
 
 function createGameServer(root = __dirname, { disconnectGraceMs = 15000 } = {}) {
   const rooms = new Map();
