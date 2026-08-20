@@ -72,7 +72,7 @@
   const COMBO_NAMES = {
     single: "单张", pair: "对子", triple: "三张", fullhouse: "三带二",
     straight: "顺子", pairs: "三连对", steel: "钢板", bomb: "炸弹",
-    straightflush: "同花顺", jokerbomb: "四王炸"
+    straightflush: "同花顺", jokerbomb: "四王炸", wooden: "木板"
   };
   const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
 
@@ -220,6 +220,11 @@
     if (n === 6 && groups.length === 2 && groups.every(g => g[1] === 3)) {
       const high = consecutiveGroupHigh(unique, 2);
       if (high !== null) return { type: "steel", value: high, size: n };
+    }
+
+    if (n === 9 && groups.length === 3 && groups.every(g => g[1] === 3)) {
+      const high = consecutiveGroupHigh(unique, 3);
+      if (high !== null) return { type: "wooden", value: high, size: n };
     }
     return null;
   }
@@ -409,6 +414,51 @@
   function removeCards(player, cards) {
     const ids = new Set(cards.map(c => c.id));
     state.hands[player] = state.hands[player].filter(c => !ids.has(c.id));
+  }
+
+  function removeCard(player, cardId) {
+    state.hands[player] = state.hands[player].filter(c => c.id !== cardId);
+  }
+
+  function cardText(card) {
+    if (card.joker) return card.big ? "大王" : "小王";
+    return `${card.suit}${card.rank}`;
+  }
+
+  /* ═══ 进贡 / 还贡 / 抗贡（上一局结束后，下一局发牌完自动执行）═══ */
+  function performTribute(prevOrder) {
+    if (state.round <= 1 || !prevOrder || prevOrder.length < 4) return;
+    const leader = prevOrder[0];
+    const last = prevOrder[3];
+    // 抗贡：末游抓到两张大王，免进贡并由末游先出
+    const bigJokers = state.hands[last].filter(c => c.joker && c.big);
+    if (bigJokers.length >= 2) {
+      state.dealer = last;
+      showToast(`${NAMES[last]} 抓到两张大王，抗贡！由 ${NAMES[last]} 先出牌`, "success");
+      return;
+    }
+    // 进贡牌：末游手中最大的一张（不含红心级牌与大小王）
+    const eligible = state.hands[last].filter(c => !c.joker && !(c.suit === "♥" && c.rank === state.level));
+    if (!eligible.length) {
+      state.dealer = leader;
+      return;
+    }
+    const tribute = eligible.reduce((a, b) => rankValue(b.rank) > rankValue(a.rank) ? b : a);
+    removeCard(last, tribute.id);
+    state.hands[leader].push(tribute);
+    // 还贡：头游还一张 10 及以下的牌（自动选最小；没有则跳过）
+    const repayable = state.hands[leader].filter(c => !c.joker && naturalValue(c.rank) <= 10);
+    let repay = null;
+    if (repayable.length) {
+      repay = repayable.reduce((a, b) => naturalValue(b.rank) < naturalValue(a.rank) ? b : a);
+      removeCard(leader, repay.id);
+      state.hands[last].push(repay);
+    }
+    state.hands.forEach(sortHand);
+    state.dealer = leader;
+    const message = `${NAMES[last]} 向 ${NAMES[leader]} 进贡 ${cardText(tribute)}` +
+      (repay ? `，${NAMES[leader]} 还 ${cardText(repay)}` : "");
+    showToast(message, "info");
   }
 
   function commitPlay(player, cards, combo) {
@@ -699,6 +749,10 @@
     state.hands = [[], [], [], []];
     deck.forEach((card, index) => state.hands[index % 4].push(card));
     state.hands.forEach(sortHand);
+    // 上一局结束 → 下一局发牌后自动进贡/还贡/抗贡（需在 finishOrder 清空前读取）
+    const prevOrder = state.finishOrder.length === 4 ? [...state.finishOrder] : null;
+    state.finishOrder = [];
+    if (prevOrder) performTribute(prevOrder);
     state.currentPlayer = state.dealer;
     state.currentPlay = null;
     state.lastPlayer = null;

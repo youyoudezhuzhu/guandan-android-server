@@ -241,7 +241,16 @@
       const info = await api("/api/info");
       if (room !== activeRoom) return;
       const port = location.port || "4173";
-      $("lan-address").textContent = info.addresses.length ? info.addresses.map(address => `http://${address}:${port}`).join(" · ") : location.href;
+      // 合并 Android 原生枚举的全部网卡 IP + Node 服务端地址，去重
+      let all = [...(info.addresses || [])];
+      try {
+        if (window.AndroidBridge && typeof AndroidBridge.getIpAddresses === "function") {
+          const raw = String(AndroidBridge.getIpAddresses() || "");
+          const nativeIps = raw.split(",").map(s => s.trim()).filter(Boolean);
+          all = [...new Set([...nativeIps, ...all])];
+        }
+      } catch (_) { /* bridge 不可用时忽略 */ }
+      $("lan-address").textContent = all.length ? all.map(address => `http://${address}:${port}`).join(" · ") : location.href;
     } catch (_) { if (room === activeRoom) $("lan-address").textContent = location.href; }
   };
 

@@ -83,7 +83,10 @@ function createGameServer(root = __dirname, { disconnectGraceMs = 15000 } = {}) 
 
   const api = async (request, response, url) => {
     if (request.method === "GET" && url.pathname === "/api/info") {
-      const addresses = Object.values(os.networkInterfaces()).flat().filter(item => item?.family === "IPv4" && !item.internal).map(item => item.address);
+      const addresses = Object.values(os.networkInterfaces()).flat()
+        .filter(item => item && !item.internal)
+        .filter(item => (item.family === "IPv4" || item.family === 4) && !item.address.startsWith("169.254"))
+        .map(item => item.address);
       return sendJson(response, 200, { addresses });
     }
 

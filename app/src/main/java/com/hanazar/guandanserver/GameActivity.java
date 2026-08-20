@@ -1,19 +1,74 @@
 package com.hanazar.guandanserver;
 
 import android.app.Activity;
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.LinkProperties;
+import android.net.Network;
 import android.os.Bundle;
 import android.view.View;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * 内嵌 WebView：加载本机 node 服务器，让开服务器的手机也能直接玩。
  * 支持页面内 Fullscreen API（onShowCustomView），配合前端全屏按钮使用。
  */
 public class GameActivity extends Activity {
+
+    /** 供 WebView 调用的 IP 桥：枚举系统所有网卡（WiFi/热点/流量）的 IPv4 */
+    public class AndroidBridge {
+        private final Context context;
+
+        public AndroidBridge(Context context) {
+            this.context = context;
+        }
+
+        @JavascriptInterface
+        public String getIpAddresses() {
+            List<String> ips = new ArrayList<>();
+            // 方式一：NetworkInterface 全量枚举（wlan0 / ap0 / rmnet_data0 等）
+            try {
+                for (NetworkInterface nif : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                    if (nif == null || !nif.isUp() || nif.isLoopback()) continue;
+                    for (InetAddress addr : Collections.list(nif.getInetAddresses())) {
+                        if (addr instanceof Inet4Address && !addr.isLoopbackAddress() && !addr.isLinkLocalAddress()) {
+                            String ip = addr.getHostAddress();
+                            if (ip != null && !ips.contains(ip)) ips.add(ip);
+                        }
+                    }
+                }
+            } catch (Exception ignored) { }
+            // 方式二：ConnectivityManager 补充（可能拿到 LinkProperties 里的完整地址）
+            try {
+                ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                if (cm != null) {
+                    for (Network network : cm.getAllNetworks()) {
+                        LinkProperties lp = cm.getLinkProperties(network);
+                        if (lp == null) continue;
+                        for (InetAddress addr : lp.getAllAddresses()) {
+                            if (addr instanceof Inet4Address && !addr.isLoopbackAddress() && !addr.isLinkLocalAddress()) {
+                                String ip = addr.getHostAddress();
+                                if (ip != null && !ips.contains(ip)) ips.add(ip);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) { }
+            return String.join(",", ips);
+        }
+    }
 
     private WebView webView;
     private FrameLayout fullscreenContainer;
@@ -64,6 +119,9 @@ public class GameActivity extends Activity {
                 exitCustomView();
             }
         });
+
+        // 原生 IP 桥：让前端能拿到所有网卡（WiFi/热点/流量）地址
+        webView.addJavascriptInterface(new AndroidBridge(this), "AndroidBridge");
 
         webView.loadUrl("http://127.0.0.1:" + NodeService.PORT + "/");
     }
