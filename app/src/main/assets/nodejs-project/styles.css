@@ -540,9 +540,11 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
    这里用 orientation:landscape + pointer:coarse 精确命中手机横屏，不依赖宽度断点。 */
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 560px) {
   :root { --card-w:calc(42px + var(--card-size-adjust)); }
-  /* 顶栏与页脚不再占 grid 行：悬浮在画面角落 */
-  .game-shell { grid-template-rows:0 minmax(0,100dvh) 0; }
-  .table-wrap { min-height:0; }
+  /* 顶栏与页脚不再占 grid 行：悬浮在画面角落。
+     注意：topbar/footer 用 fixed 脱离文档流后，grid 里只剩 table-wrap 一个 item，
+     会被自动放进第一行（0px）导致高度塌陷，所以横屏必须改用 block + 绝对定位撑满。 */
+  .game-shell { position:relative; display:block; height:100dvh; }
+  .table-wrap { position:absolute; inset:0; min-height:0; }
 
   /* ── 悬浮菜单：左上角 ── */
   .topbar {
