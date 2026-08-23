@@ -172,7 +172,9 @@
   const beginLanGame = activeRoom => {
     if (room !== activeRoom || activeRoom.started || !Array.isArray(activeRoom.players) || activeRoom.players.length < 2) return;
     activeRoom.started = true;
-    window.GuandanGame?.configureLan({ seat: activeRoom.seat, host: activeRoom.host, humanSeats: activeRoom.players.map(player => player.seat), names: namesFromPlayers(activeRoom.players), send: sendRoom });
+    // 房主/玩家都读取技能模式（玩家端由 start payload 携带）
+    const skillMode = activeRoom.skillMode !== undefined ? activeRoom.skillMode : false;
+    window.GuandanGame?.configureLan({ seat: activeRoom.seat, host: activeRoom.host, humanSeats: activeRoom.players.map(player => player.seat), names: namesFromPlayers(activeRoom.players), send: sendRoom, skillMode });
     showGame("lanGame");
     close($("lan-dialog"));
   };
@@ -197,6 +199,7 @@
       if (payload.type === "start") {
         if (!Array.isArray(payload.players) || payload.players.length < 2) return;
         activeRoom.players = payload.players;
+        activeRoom.skillMode = Boolean(payload.skillMode);
         beginLanGame(activeRoom);
       } else if (payload.type === "snapshot" && !activeRoom.host) {
         window.GuandanGame?.applyLanSnapshot(payload.state, payload.revision);
@@ -229,6 +232,9 @@
     $("start-lan-game").disabled = starting || !room.host || (room.players?.length || 0) < 2;
     $("start-lan-game").textContent = starting ? t("startingGame") : t("startGame");
     $("start-lan-game").setAttribute("aria-busy", String(starting));
+    // 技能模式开关：仅房主、未开局时可见
+    const skillWrap = $("lan-skill-toggle-wrap");
+    if (skillWrap) skillWrap.style.display = (room.host && !starting) ? "flex" : "none";
   };
 
   const enterRoom = async data => {
@@ -293,13 +299,15 @@
     activeRoom.starting = true;
     renderRoom();
     try {
-      const result = await sendRoom({ type: "start" });
+      const skillMode = Boolean($("lan-skill-mode")?.checked);
+      const result = await sendRoom({ type: "start", skillMode });
       if (room !== activeRoom) return;
       activeRoom.players = result.room.players;
+      activeRoom.skillMode = skillMode;
       const seats = activeRoom.players.map(player => player.seat);
       const names = namesFromPlayers(activeRoom.players);
       activeRoom.started = true;
-      window.GuandanGame?.configureLan({ seat: activeRoom.seat, host: true, humanSeats: seats, names, send: sendRoom });
+      window.GuandanGame?.configureLan({ seat: activeRoom.seat, host: true, humanSeats: seats, names, send: sendRoom, skillMode });
       showGame("lanGame");
       close($("lan-dialog"));
       window.GuandanGame?.startLanGame();
@@ -314,7 +322,9 @@
   $("single-player-button").addEventListener("click", () => {
     leaveRoom();
     showGame("singlePlayer");
-    window.GuandanGame?.startSingle();
+    // 技能模式可选: 确定=技能模式, 取消=常规模式
+    const skillMode = window.confirm("是否开启技能模式？\n\n确定 = 技能模式（无中生有/顺手牵羊/过河拆桥/乐不思蜀/五谷丰登）\n取消 = 常规模式");
+    window.GuandanGame?.startSingle(skillMode ? "skill" : "normal");
   });
   $("home-button").addEventListener("click", () => { leaveRoom(); showHome(); });
   [$("settings-button"), $("home-settings-button"), $("game-settings-button")].forEach(button => button.addEventListener("click", openSettings));

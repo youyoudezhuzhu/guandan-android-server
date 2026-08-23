@@ -98,7 +98,13 @@
     lastAdvance: 0,
     localPlayer: 0,
     animateDeal: false,
-    lan: null
+    lan: null,
+    // ── 技能模式 ──
+    skillMode: false,
+    skillCards: [[], [], [], []],   // 每个玩家手上的技能卡 [{id, type}]
+    skipNextTurn: [false, false, false, false], // 乐不思蜀效果
+    skillTarget: null,              // 待选目标的技能(交互中用)
+    skillPending: null
   };
 
   let sfxVolume = 1;
@@ -304,6 +310,92 @@
     state.animateDeal = false;
   }
 
+  /* ═══ 技能模式 ── 渲染技能卡按钮（升级为素材卡样式）═══ */
+  const SKILL_BUTTON_CN = {
+    DrawTwo: "无中生有", Steal: "顺手牵羊", Discard: "过河拆桥", Skip: "乐不思蜀", Harvest: "五谷丰登"
+  };
+  const SKILL_DESC = {
+    DrawTwo: "从牌堆抽 2 张牌", Steal: "偷取目标 1 张随机牌", Discard: "让目标弃 1 张随机牌",
+    Skip: "目标下回合被跳过", Harvest: "所有未出完玩家各 +1 张"
+  };
+  const SKILL_GLYPH = {
+    DrawTwo: "二", Steal: "手", Discard: "拆", Skip: "眠", Harvest: "丰"
+  };
+  const SKILL_THEME = {
+    DrawTwo: "#cda75c", Steal: "#7fb3d5", Discard: "#c07a5c", Skip: "#9b8fc4", Harvest: "#7fbf7f"
+  };
+  function renderSkills() {
+    const zone = byId("skill-bar");
+    if (!zone) return;
+    if (!state.skillMode) { zone.classList.add("view-hidden"); return; }
+    zone.classList.remove("view-hidden");
+    const mine = state.skillCards[state.localPlayer] || [];
+    const humanTurn = state.currentPlayer === state.localPlayer && !state.locked && !state.finishOrder.includes(state.localPlayer);
+    zone.innerHTML = mine.length
+      ? mine.map((skill, idx) => {
+          const name = SKILL_BUTTON_CN[skill.type] || skill.type;
+          const desc = SKILL_DESC[skill.type] || "";
+          const glyph = SKILL_GLYPH[skill.type] || "技";
+          const color = SKILL_THEME[skill.type] || "#cda75c";
+          return `<button class="skill-card ${humanTurn ? "enabled" : "disabled"}" data-skill-idx="${idx}" data-skill-type="${skill.type}" type="button" style="--skill-color:${color}" aria-label="${name}">
+            <span class="skill-card-glyph">${glyph}</span>
+            <span class="skill-card-name">${name}</span>
+            <span class="skill-card-desc">${desc}</span>
+          </button>`; })
+        .join("")
+      : `<span class="skill-empty">已无技能</span>`;
+    // 绑定点击（仅人类回合）
+    if (humanTurn) {
+      zone.querySelectorAll(".skill-card").forEach(button => {
+        button.addEventListener("click", () => onSkillClick(button.dataset.skillIdx));
+      });
+    }
+  }
+
+  function skillIcon(type) {
+    return { DrawTwo: "🎴", Steal: "🃏", Discard: "✂️", Skip: "💤", Harvest: "🌾" }[type] || "⚙";
+  }
+
+  // 人类点击技能卡
+  function onSkillClick(idx) {
+    if (!state.skillMode || state.currentPlayer !== state.localPlayer || state.locked) return;
+    const skill = (state.skillCards[state.localPlayer] || [])[idx];
+    if (!skill) return;
+    if (SKILL_NEEDS_TARGET(skill.type)) {
+      // 需要目标：弹出对手选择
+      state.skillPending = { idx, type: skill.type };
+      openSkillTargetDialog();
+    } else {
+      useSkill(state.localPlayer, skill.type, undefined, idx);
+    }
+  }
+
+  function openSkillTargetDialog() {
+    const dialog = byId("skill-target-dialog");
+    if (!dialog || !state.skillPending) return;
+    const targets = [0, 1, 2, 3].filter(s => s !== state.localPlayer && !state.finishOrder.includes(s));
+    const list = byId("skill-target-list");
+    if (list) {
+      list.innerHTML = targets.map(s => `
+        <button class="skill-target" data-seat="${s}" type="button">
+          <span class="skill-target-avatar">${NAMES[s].slice(0, 1)}</span><span>${NAMES[s]}</span>
+        </button>`).join("");
+      list.querySelectorAll(".skill-target").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const seat = Number(btn.dataset.seat);
+          const pending = state.skillPending;
+          state.skillPending = null;
+          closeDialog(dialog);
+          useSkill(state.localPlayer, pending.type, seat, pending.idx);
+        });
+      });
+    }
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    const cancel = byId("skill-target-cancel");
+    if (cancel) cancel.onclick = () => { state.skillPending = null; closeDialog(dialog); };
+  }
+
+
   function revealSelection() {
     if (!autoScrollHints) return;
     const card = el["player-hand"].querySelector(".selected");
@@ -360,6 +452,7 @@
     el["their-level"].textContent = state.teamLevels[1 - ourTeam];
     el["our-wins"].textContent = `${state.teamWins[ourTeam]} 胜`;
     el["their-wins"].textContent = `${state.teamWins[1 - ourTeam]} 胜`;
+    renderSkills();
     syncLanState();
   }
 
@@ -419,6 +512,143 @@
     if (card.joker) return card.big ? "大王" : "小王";
     return `${card.suit}${card.rank}`;
   }
+
+  /* ═══ 技能模式 ── 技能卡系统（移植自 GuanDanInOffice）═══ */
+  const SKILL_TYPES = {
+    DrawTwo: "无中生有",
+    Steal: "顺手牵羊",
+    Discard: "过河拆桥",
+    Skip: "乐不思蜀",
+    Harvest: "五谷丰登"
+  };
+  const SKILL_POOL = ["DrawTwo", "Steal", "Discard", "Skip", "Harvest"];
+  const SKILL_NEEDS_TARGET = type => ["Steal", "Discard", "Skip"].includes(type);
+
+  // 洗技能池，每人发 2 张（保持 GuanDanInOffice 的 pool[i*2], pool[i*2+1] 逻辑）
+  function dealSkillCards() {
+    const pool = shuffle([...SKILL_POOL, ...SKILL_POOL]);
+    state.skillCards = [[], [], [], []];
+    for (let i = 0; i < 4; i++) {
+      state.skillCards[i] = [pool[i * 2], pool[i * 2 + 1]].map(type => ({ id: `${type}-${i}-${Math.random().toString(36).slice(2, 6)}`, type }));
+    }
+  }
+
+  // 生成一张随机牌（克制 2 副牌之外的补充牌），复用现有卡结构
+  function generateRandomCard() {
+    const suit = SUITS[Math.floor(Math.random() * SUITS.length)];
+    const rank = RANKS[Math.floor(Math.random() * RANKS.length)];
+    const card = { id: `gen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, suit, rank, copy: 2, joker: false };
+    if (Math.random() < 0.05) {
+      const big = Math.random() < 0.5;
+      card.suit = ""; card.rank = big ? "大王" : "小王"; card.joker = true; card.big = big;
+    }
+    return card;
+  }
+
+  function skillTargetName(target) {
+    return target === undefined ? "" : NAMES[target];
+  }
+
+  // 返回能否使用（校验回合、模式等），不会真正执行
+  function canUseSkill(seat) {
+    if (!state.skillMode) return false;
+    if (state.locked || state.currentPlayer !== seat) return false;
+    if (state.finishOrder.includes(seat)) return false;
+    return state.skillCards[seat] && state.skillCards[seat].length > 0;
+  }
+
+  // 执行技能效果（user 使用技能，target 为目标玩家），成功返回 true
+  function applySkill(user, type, target) {
+    const hand = state.hands[user];
+    if (!hand) return false;
+    const cards = () => {
+      const generated = [];
+      for (let i = 0; i < (type === "Steal" ? 1 : 0); i++) {}
+      return generated;
+    };
+    if (type === "DrawTwo") {
+      // 无中生有：抽 2 张随机牌
+      hand.push(generateRandomCard(), generateRandomCard());
+      sortHand(hand);
+      showToast(`${NAMES[user]} 使用了【无中生有】，获得 2 张牌！`, "success");
+    } else if (type === "Steal") {
+      // 顺手牵羊：从目标偷 1 张随机牌
+      if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
+      const targetHand = state.hands[target];
+      const idx = Math.floor(Math.random() * targetHand.length);
+      const stolen = targetHand.splice(idx, 1)[0];
+      hand.push(stolen);
+      sortHand(hand);
+      showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【顺手牵羊】！`, "success");
+    } else if (type === "Discard") {
+      // 过河拆桥：目标弃 1 张随机牌
+      if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
+      const targetHand = state.hands[target];
+      const idx = Math.floor(Math.random() * targetHand.length);
+      targetHand.splice(idx, 1);
+      showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【过河拆桥】！`, "success");
+    } else if (type === "Skip") {
+      // 乐不思蜀：目标下回合跳过
+      if (target === undefined) return false;
+      state.skipNextTurn[target] = true;
+      showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【乐不思蜀】，下回合被跳过！`, "success");
+    } else if (type === "Harvest") {
+      // 五谷丰登：所有未出完的玩家各抽 1 张
+      for (let i = 0; i < 4; i++) {
+        if (!state.finishOrder.includes(i) && state.hands[i] && state.hands[i].length > 0) {
+          state.hands[i].push(generateRandomCard());
+          sortHand(state.hands[i]);
+        }
+      }
+      showToast(`${NAMES[user]} 使用了【五谷丰登】，每人获得 1 张牌！`, "success");
+    }
+    return true;
+  }
+
+  function closeDialog(dialog) { if (dialog && dialog.open && typeof dialog.close === "function") dialog.close(); }
+
+  // 使用技能（人类/AI 都走这里）：消耗技能卡 + 刷新 + 同步
+  function useSkill(user, type, target, cardIdx) {
+    if (!state.skillMode) return false;
+    // 统计技能使用（用于调试/测试）
+    window.__skillLog = window.__skillLog || [];
+    window.__skillLog.push({ user, type, target, time: Date.now() });
+    if (window.__skillLog.length > 50) window.__skillLog.shift();
+    // 非房主联机时，发 action 给房主执行
+    if (state.lan && !state.lan.host) {
+      sendLanAction({ type: "action", action: "skill", skill: type, target, cardIdx });
+      return true;
+    }
+    const ok = applySkill(user, type, target);
+    if (ok) {
+      const mine = state.skillCards[user] || [];
+      const idx = cardIdx !== undefined ? cardIdx : mine.findIndex(s => s.type === type);
+      if (idx >= 0) mine.splice(idx, 1);
+      state.selected.clear();
+      // 技能使用反馈：给触发技能卡加动画 + 出牌区横幅提示
+      const usedSkill = document.querySelector(`.skill-card[data-skill-idx="${idx}"]`);
+      if (usedSkill) {
+        usedSkill.classList.add("skill-used");
+        setTimeout(() => usedSkill.remove(), 450);
+      }
+      const trickZone = document.querySelector(".trick-zone");
+      if (trickZone) {
+        const banner = document.createElement("div");
+        banner.className = "skill-banner";
+        banner.textContent = `${NAMES[user]} 使用【${SKILL_BUTTON_CN[type] || type}】`;
+        trickZone.appendChild(banner);
+        setTimeout(() => banner.classList.add("show"), 30);
+        setTimeout(() => { banner.classList.remove("show"); setTimeout(() => banner.remove(), 350); }, 1400);
+      }
+      render();
+      updateSelectionTip();
+      renderSkills();
+      syncLanState();
+      playSfx("skill");
+    }
+    return ok;
+  }
+
 
   /* ═══ 进贡 / 还贡 / 抗贡（上一局结束后，下一局发牌完自动执行）═══ */
   function performTribute(prevOrder) {
@@ -491,7 +721,18 @@
 
   function nextActive(from) {
     let next = (from + 3) % 4;
-    while (state.finishOrder.includes(next)) next = (next + 3) % 4;
+    let guard = 0;
+    while ((state.finishOrder.includes(next) || state.skipNextTurn[next]) && guard < 8) {
+      // 乐不思蜀：跳过该玩家，并清除效果（被跳过后恢复正常）
+      if (state.skipNextTurn[next]) {
+        state.skipNextTurn[next] = false;
+        if (state.currentPlay && state.lastPlayer === next) {
+          // 若上家出的牌轮到被跳过的玩家，视为其不回应，继续向后
+        }
+      }
+      next = (next + 3) % 4;
+      guard++;
+    }
     return next;
   }
 
@@ -659,6 +900,53 @@
     return pool[0];
   }
 
+  // AI 技能决策（智能策略）：根据局势选择最有利的技能，而非随机
+  function aiUseSkill(player) {
+    if (!state.skillMode || state.locked || state.currentPlayer !== player) return false;
+    const skills = state.skillCards[player] || [];
+    if (!skills.length) return false;
+    const handCount = state.hands[player].length;
+    const myHandSmall = handCount <= 8;
+    const team = player % 2;
+    // 对手（未出完）中手牌最少的：威胁最大
+    const opponents = [0, 1, 2, 3].filter(s => s !== player && !state.finishOrder.includes(s) && s % 2 !== team);
+    const teammate = [0, 1, 2, 3].find(s => s !== player && s % 2 === team && !state.finishOrder.includes(s));
+    if (!opponents.length) return false;
+
+    // 找威胁最大的对手（手牌最少）
+    const mostThreat = opponents.reduce((a, b) => state.hands[a].length < state.hands[b].length ? a : b, opponents[0]);
+    const threatCards = state.hands[mostThreat].length;
+
+    const has = type => skills.some(s => s.type === type);
+    const skillOf = type => skills.find(s => s.type === type);
+
+    // ── 优先级 1: 对手手牌较少(≤14张) → 用乐不思蜀/过河拆桥压制 ──
+    if (threatCards <= 14) {
+      if (has("Skip")) { useSkill(player, "Skip", mostThreat); return true; }
+      if (has("Discard")) { useSkill(player, "Discard", mostThreat); return true; }
+    }
+    // ── 优先级 2: 顺风(自己能冲头游, 手牌很少) → 用顺手牵羊减少对手牌 ──
+    if (myHandSmall && threatCards <= 18 && has("Steal")) {
+      useSkill(player, "Steal", mostThreat); return true;
+    }
+    // ── 优先级 3: 队友快出完(帮队友) → 五谷登丰/顺手牵羊加固队友 ──
+    if (teammate !== undefined && state.hands[teammate].length <= 10 && has("Harvest")) {
+      useSkill(player, "Harvest"); return true;
+    }
+    // ── 优先级 4: 自己手牌少想补牌(但别冲头游时用) → 无中生有 ──
+    if (handCount <= 14 && handCount > 4 && has("DrawTwo")) {
+      useSkill(player, "DrawTwo"); return true;
+    }
+    // ── 兜底: 有一定概率用一张(保持活跃但非每回合) ──
+    if (Math.random() < 0.5) {
+      const type = skills[Math.floor(Math.random() * skills.length)].type;
+      const target = SKILL_NEEDS_TARGET(type) ? mostThreat : undefined;
+      useSkill(player, type, target);
+      return true;
+    }
+    return false;
+  }
+
   function scheduleAI() {
     clearTimeout(state.timer);
     state.timer = null;
@@ -668,6 +956,17 @@
     state.timer = setTimeout(() => {
       if (state.locked || state.currentPlayer !== player) return;
       state.timer = null;
+      // 技能模式：AI 先尝试用技能（用技能不消耗出牌机会）
+      if (aiUseSkill(player)) {
+        // 用技能后若仍轮到该 AI，继续出牌
+        if (state.currentPlayer === player && !state.locked && !state.finishOrder.includes(player)) {
+          const teammateLeading2 = state.lastPlayer !== null && state.lastPlayer % 2 === player % 2;
+          const move2 = findAIMove(state.hands[player], state.currentPlay?.combo || null, teammateLeading2);
+          if (move2) commitPlay(player, move2.cards, move2.combo); else if (state.currentPlay) commitPass(player);
+          return;
+        }
+        return;
+      }
       const teammateLeading = state.lastPlayer !== null && state.lastPlayer % 2 === player % 2;
       const move = findAIMove(state.hands[player], state.currentPlay?.combo || null, teammateLeading);
       if (move) commitPlay(player, move.cards, move.combo); else commitPass(player);
@@ -744,6 +1043,16 @@
     state.hands = [[], [], [], []];
     deck.forEach((card, index) => state.hands[index % 4].push(card));
     state.hands.forEach(sortHand);
+    // 技能模式：每局重新发技能卡 + 重置跳过效果
+    if (state.skillMode) {
+      dealSkillCards();
+      state.skipNextTurn = [false, false, false, false];
+      state.skillTarget = null;
+      state.skillPending = null;
+    } else {
+      state.skillCards = [[], [], [], []];
+      state.skipNextTurn = [false, false, false, false];
+    }
     // 上一局结束 → 下一局发牌后自动进贡/还贡/抗贡（需在 finishOrder 清空前读取）
     const prevOrder = state.finishOrder.length === 4 ? [...state.finishOrder] : null;
     state.finishOrder = [];
@@ -896,6 +1205,7 @@
       bomb: [[105, .24, .045, "sawtooth", 0], [158, .2, .035, "square", .035]],
       error: [[170, .09, .028, "square", 0], [125, .12, .022, "sawtooth", .055]],
       toggle: [[520, .07, .025, "sine", 0], [780, .08, .018, "sine", .045]],
+      skill: [[440, .06, .024, "sine", 0], [660, .09, .02, "triangle", .05], [880, .12, .018, "sine", .1]],
       finish: [[220, .18, .025, "triangle", 0], [196, .24, .02, "triangle", .12]],
       win: [[392, .12, .026, "triangle", 0], [493.88, .16, .024, "triangle", .08], [587.33, .28, .022, "triangle", .17]]
     }[kind] || [];
@@ -961,6 +1271,7 @@
       finishOrder: state.finishOrder, locked: state.locked, history: state.history,
       teamLevels: state.teamLevels, teamWins: state.teamWins, dealer: state.dealer,
       lastAdvance: state.lastAdvance, names: NAMES,
+      skillMode: state.skillMode, skillCards: state.skillCards, skipNextTurn: state.skipNextTurn,
       result: {
         title: el["result-title"].textContent, copy: el["result-copy"].textContent,
         again: el["again-button"].textContent, resetMatch: el["again-button"].dataset.resetMatch
@@ -972,13 +1283,14 @@
     if (state.lan?.host) Promise.resolve(state.lan.send({ type: "snapshot", revision: ++state.lan.revision, state: lanSnapshot() })).catch(() => {});
   }
 
-  function configureLan({ seat, host, humanSeats, names, send }) {
+  function configureLan({ seat, host, humanSeats, names, send, skillMode }) {
     pauseAI();
     state.localPlayer = seat;
     state.lan = { host, humanSeats: [...humanSeats], send, revision: 0, lastRevision: -1 };
     NAMES = [...names];
     state.selected.clear();
     state.animateDeal = !host;
+    if (typeof skillMode === "boolean") state.skillMode = skillMode;
   }
 
   function updateLanPlayers(humanSeats, names) {
@@ -1001,7 +1313,7 @@
     const previousHistorySize = state.history.length;
     const wasLocked = state.locked;
     if (snapshot.round !== state.round || (wasLocked && !snapshot.locked)) state.animateDeal = true;
-    const fields = ["level", "round", "hands", "currentPlayer", "currentPlay", "lastPlayer", "passCount", "finishOrder", "locked", "history", "teamLevels", "teamWins", "dealer", "lastAdvance"];
+    const fields = ["level", "round", "hands", "currentPlayer", "currentPlay", "lastPlayer", "passCount", "finishOrder", "locked", "history", "teamLevels", "teamWins", "dealer", "lastAdvance", "skillMode", "skillCards", "skipNextTurn"];
     fields.forEach(field => { state[field] = snapshot[field]; });
     NAMES = [...snapshot.names];
     state.selected.clear();
@@ -1030,6 +1342,11 @@
 
   function handleLanAction(player, payload) {
     if (!state.lan?.host || !state.lan.humanSeats.includes(player) || state.currentPlayer !== player || state.locked) return syncLanState();
+    if (payload.action === "skill") {
+      useSkill(player, payload.skill, payload.target, payload.cardIdx);
+      syncLanState();
+      return;
+    }
     if (payload.action === "pass") {
       if (state.currentPlay) commitPass(player); else syncLanState();
       return;
@@ -1074,11 +1391,12 @@
   window.GuandanGame = {
     pause: pauseAI,
     leave: leaveGame,
-    startSingle() {
+    startSingle(mode) {
       state.localPlayer = 0;
       state.lan = null;
       NAMES = [...DEFAULT_NAMES];
       el["again-button"].disabled = false;
+      state.skillMode = mode === "skill";
       startGame(true);
     },
     configureLan,
@@ -1089,7 +1407,10 @@
     previewSfx() { if (!playSfx("hint")) showToast("当前浏览器不支持音效", "error"); },
     setAudio,
     setPreferences,
-    resume: scheduleAI
+    resume: scheduleAI,
+    // ── 技能模式开关（由入口传入）──
+    setSkillMode(on) { state.skillMode = Boolean(on); },
+    getSkillMode() { return state.skillMode; }
   };
 
   function shortcutAction(event) {
