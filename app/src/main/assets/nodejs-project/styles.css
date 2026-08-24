@@ -187,6 +187,14 @@ button:focus-visible, .card:focus-visible { outline: 3px solid var(--gold-bright
 .player.dealer .avatar { box-shadow:0 0 0 2px var(--gold), 0 7px 14px rgba(0,0,0,.25), inset 0 1px rgba(255,255,255,.25); }
 .player.dealer .avatar::after { content:"先"; position:absolute; right:-8px; bottom:-6px; width:20px; height:20px; display:grid; place-items:center; font-size:9px; font-weight:800; color:#382713; background:var(--gold); border:2px solid #18483d; border-radius:50%; }
 .player .avatar { position:relative; }
+/* 声东击西: 被锁定玩家头像旁显示🧭状态角标 */
+.player.distracted .avatar::after {
+  content:"🧭"; position:absolute; right:-8px; top:-6px; width:20px; height:20px;
+  display:grid; place-items:center; font-size:11px; line-height:1;
+  background:rgba(102,120,165,.9); border:2px solid #2a1a4a; border-radius:50%;
+  box-shadow:0 0 8px rgba(102,120,165,.6);
+}
+.player.distracted .player-name { color:#9db0e0; }
 .player-copy { min-width: 76px; }
 .name-line { display:flex; align-items:center; gap:7px; white-space:nowrap; }
 .name-line strong { font-size:14px; letter-spacing:1px; }
@@ -653,17 +661,17 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 
   /* ── 主页精简：手机横屏一屏放下所有保留元素 ── */
   .home-screen { padding:0 !important; }
-  .hero-panel { gap:14px; padding:24px 0 20px; }
-  .hero-kicker { margin:0 0 8px; font-size:10px; letter-spacing:4px; }
-  .hero-copy h2 { font-size:clamp(30px,7vw,46px); }
-  .hero-description { margin:10px 0 8px; font-size:12px; line-height:1.6; }
-  .home-actions { gap:8px; max-width:560px; }
-  .home-primary,.home-secondary { min-height:56px; padding:8px 14px; }
-  .home-primary,.home-secondary b { font-size:14px; margin-bottom:2px; }
+  .hero-panel { gap:10px; padding:14px 0 12px; }
+  .hero-kicker { margin:0 0 5px; font-size:10px; letter-spacing:4px; }
+  .hero-copy h2 { font-size:clamp(26px,6vw,40px); }
+  .hero-description { margin:4px 0 5px; font-size:12px; line-height:1.55; }
+  .home-actions { gap:7px; max-width:560px; }
+  .home-primary,.home-secondary { min-height:48px; padding:7px 14px; }
+  .home-primary,.home-secondary b { font-size:14px; margin-bottom:1px; }
   .home-primary,.home-secondary small { font-size:10px; }
   .home-actions .action-index { font-size:11px; }
   .home-actions button > i { font-size:18px; }
-  .home-compact { min-height:38px; font-size:12px; }
+  .home-compact { min-height:36px; font-size:12px; }
 }
 
 /* 极矮横屏（vh ≤ 330）进一步压缩：卡更小、按钮更小、对手区更小 */
@@ -726,6 +734,15 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 .skill-target-avatar {
   width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
   background:linear-gradient(135deg,#3f7f6a,#2a5a48); color:#fff; font-size:13px; font-weight:700;
+}
+
+/* ═══ 明察秋毫: 查看手牌弹窗 ═══ */
+.skill-peek-list { display:flex; flex-wrap:wrap; gap:8px; padding:6px 0 16px; justify-content:center; }
+.peek-card {
+  min-width:44px; height:60px; display:flex; align-items:center; justify-content:center;
+  padding:0 8px; border:1px solid rgba(216,182,106,.5); border-radius:8px;
+  background:linear-gradient(145deg,#f2f0e6,#d8d2c0); color:#26311f; font-weight:700; font-size:15px;
+  box-shadow:0 4px 10px rgba(0,0,0,.25);
 }
 
 /* ═══ 联机技能模式开关 ═══ */

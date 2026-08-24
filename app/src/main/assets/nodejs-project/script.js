@@ -117,7 +117,13 @@
     skillCards: [[], [], [], []],   // 每个玩家手上的技能卡 [{id, type}]
     skipNextTurn: [false, false, false, false], // 乐不思蜀效果
     skillTarget: null,              // 待选目标的技能(交互中用)
-    skillPending: null
+    skillPending: null,
+    // ── 技能系统扩展 (10技能) ──
+    discardPile: [],                // 出牌堆: 本局所有打出的牌累积, 发新局清空
+    distracted: [false, false, false, false], // 声东击西状态: 该玩家技能被锁定, 需用技能解除
+    emptyFortImmunity: [false, false, false, false], // 空城计: 自己手牌≤6时本回合免疫目标型技能
+    usedSkillThisTurn: false,       // 当前玩家本回合是否已用过技能(每回合最多1张)
+    peekResult: null                // 明察秋毫查看结果(仅使用者本人用)
   };
 
   let sfxVolume = 1;
@@ -325,17 +331,22 @@
 
   /* ═══ 技能模式 ── 渲染技能卡按钮（升级为素材卡样式）═══ */
   const SKILL_BUTTON_CN = {
-    DrawTwo: "无中生有", Steal: "顺手牵羊", Discard: "过河拆桥", Skip: "乐不思蜀", Harvest: "五谷丰登"
+    DrawTwo: "无中生有", Steal: "顺手牵羊", Discard: "过河拆桥", Skip: "乐不思蜀", Harvest: "五谷丰登",
+    Swap: "移花接木", Peek: "明察秋毫", Replace: "偷梁换柱", EmptyFort: "空城计", SoundEastWest: "声东击西"
   };
   const SKILL_DESC = {
-    DrawTwo: "从牌堆抽 2 张牌", Steal: "偷取目标 1 张随机牌", Discard: "让目标弃 1 张随机牌",
-    Skip: "目标下回合被跳过", Harvest: "所有未出完玩家各 +1 张"
+    DrawTwo: "从出牌堆抽最多2张", Steal: "偷取目标1张随机牌", Discard: "让目标弃1张牌",
+    Skip: "目标下回合被跳过", Harvest: "未出完玩家各从牌堆+1",
+    Swap: "与目标随机换1张手牌", Peek: "查看目标最多3张手牌", Replace: "弃自己1张再抽1张",
+    EmptyFort: "手牌≤6:本回合免疫目标技能", SoundEastWest: "锁定目标技能,逼其耗1张解除"
   };
   const SKILL_GLYPH = {
-    DrawTwo: "🃏", Steal: "🫳", Discard: "✂️", Skip: "💤", Harvest: "🌾"
+    DrawTwo: "🃏", Steal: "🫳", Discard: "✂️", Skip: "💤", Harvest: "🌾",
+    Swap: "🪞", Peek: "👁️", Replace: "🔄", EmptyFort: "🏯", SoundEastWest: "🧭"
   };
   const SKILL_THEME = {
-    DrawTwo: "#cda75c", Steal: "#7fb3d5", Discard: "#c07a5c", Skip: "#9b8fc4", Harvest: "#7fbf7f"
+    DrawTwo: "#cda75c", Steal: "#7fb3d5", Discard: "#c07a5c", Skip: "#9b8fc4", Harvest: "#7fbf7f",
+    Swap: "#8fa6a3", Peek: "#7189b6", Replace: "#b49a69", EmptyFort: "#8799a8", SoundEastWest: "#6678a5"
   };
   function renderSkills() {
     const zone = byId("skill-bar");
@@ -376,6 +387,16 @@
     if (!state.skillMode || state.currentPlayer !== state.localPlayer || state.locked) return;
     const skill = (state.skillCards[state.localPlayer] || [])[idx];
     if (!skill) return;
+    // 每回合最多用1张技能
+    if (state.usedSkillThisTurn) { showToast("本回合已使用过技能", "info"); return; }
+    // 空城计自条件: 需手牌≤6
+    if (skill.type === "EmptyFort" && state.hands[state.localPlayer].length > 6) {
+      showToast("空城计需要手牌 ≤6 张才能使用", "info"); return;
+    }
+    // 声东击西锁定: 处于该状态的玩家出技能前需确认(确认后技能发出并解除锁定)
+    if (state.distracted[state.localPlayer]) {
+      if (!window.confirm("你处于【声东击西】状态，使用技能将解除该状态。确认使用？")) return;
+    }
     if (SKILL_NEEDS_TARGET(skill.type)) {
       // 需要目标：弹出对手选择
       state.skillPending = { idx, type: skill.type };
@@ -388,13 +409,16 @@
   function openSkillTargetDialog() {
     const dialog = byId("skill-target-dialog");
     if (!dialog || !state.skillPending) return;
-    const targets = [0, 1, 2, 3].filter(s => s !== state.localPlayer && !state.finishOrder.includes(s));
+    // 目标 = 其他3名未出完玩家; 空城计免疫中的玩家不可选为目标
+    const targets = [0, 1, 2, 3].filter(s => s !== state.localPlayer && !state.finishOrder.includes(s) && !state.emptyFortImmunity[s]);
     const list = byId("skill-target-list");
     if (list) {
-      list.innerHTML = targets.map(s => `
+      list.innerHTML = targets.length
+        ? targets.map(s => `
         <button class="skill-target" data-seat="${s}" type="button">
           <span class="skill-target-avatar">${NAMES[s].slice(0, 1)}</span><span>${NAMES[s]}</span>
-        </button>`).join("");
+        </button>`).join("")
+        : `<span class="skill-empty">无可选目标</span>`;
       list.querySelectorAll(".skill-target").forEach(btn => {
         btn.addEventListener("click", () => {
           const seat = Number(btn.dataset.seat);
@@ -452,6 +476,7 @@
       byId(`player-${position}`).classList.toggle("active", seat === state.currentPlayer && !state.locked);
       byId(`player-${position}`).classList.toggle("finished", state.finishOrder.includes(seat));
       byId(`player-${position}`).classList.toggle("dealer", seat === state.dealer);
+      byId(`player-${position}`).classList.toggle("distracted", state.distracted[seat]);
       byId(`name-${position}`).textContent = NAMES[seat];
       byId(`avatar-${position}`).textContent = position === 0 ? "你" : NAMES[seat].slice(0, 1);
     }
@@ -534,16 +559,27 @@
     return `${card.suit}${card.rank}`;
   }
 
-  /* ═══ 技能模式 ── 技能卡系统（移植自 GuanDanInOffice）═══ */
+  /* ═══ 技能模式 ── 技能卡系统（10技能，移植自 GuanDanInOffice 并扩展）═══ */
   const SKILL_TYPES = {
     DrawTwo: "无中生有",
     Steal: "顺手牵羊",
     Discard: "过河拆桥",
     Skip: "乐不思蜀",
-    Harvest: "五谷丰登"
+    Harvest: "五谷丰登",
+    Swap: "移花接木",
+    Peek: "明察秋毫",
+    Replace: "偷梁换柱",
+    EmptyFort: "空城计",
+    SoundEastWest: "声东击西"
   };
-  const SKILL_POOL = ["DrawTwo", "Steal", "Discard", "Skip", "Harvest"];
-  const SKILL_NEEDS_TARGET = type => ["Steal", "Discard", "Skip"].includes(type);
+  const SKILL_POOL = ["DrawTwo", "Steal", "Discard", "Skip", "Harvest", "Swap", "Peek", "Replace", "EmptyFort", "SoundEastWest"];
+  // 需要选目标的技能: 顺手牵羊/过河拆桥/乐不思蜀/移花接木/明察秋毫/声东击西
+  const SKILL_NEEDS_TARGET = type => ["Steal", "Discard", "Skip", "Swap", "Peek", "SoundEastWest"].includes(type);
+  // 每种技能需要满足的自身条件(空城计需要手牌≤6)
+  const SKILL_SELF_CONDITION = type => {
+    if (type === "EmptyFort") return state.hands[state.localPlayer].length <= 6;
+    return true;
+  };
 
   // 洗技能池，每人发 2 张（保持 GuanDanInOffice 的 pool[i*2], pool[i*2+1] 逻辑）
   function dealSkillCards() {
@@ -575,38 +611,58 @@
     if (!state.skillMode) return false;
     if (state.locked || state.currentPlayer !== seat) return false;
     if (state.finishOrder.includes(seat)) return false;
-    return state.skillCards[seat] && state.skillCards[seat].length > 0;
+    if (!state.skillCards[seat] || !state.skillCards[seat].length) return false;
+    // 每回合最多使用 1 张技能卡
+    if (state.usedSkillThisTurn && state.currentPlayer === seat) return false;
+    return true;
   }
 
   // 执行技能效果（user 使用技能，target 为目标玩家），成功返回 true
+  // 从出牌堆随机抽 n 张(有多少抽多少), 返回抽到的牌
+  function drawFromDiscard(n) {
+    if (!state.discardPile.length || n <= 0) return [];
+    const count = Math.min(n, state.discardPile.length);
+    const drawn = [];
+    for (let i = 0; i < count; i++) {
+      const idx = Math.floor(Math.random() * state.discardPile.length);
+      drawn.push(state.discardPile.splice(idx, 1)[0]);
+    }
+    return drawn;
+  }
+
+  // 随机从目标手牌中取 n 张(取整张卡对象)
+  function takeRandomFromHand(seat, n) {
+    const hand = state.hands[seat];
+    if (!hand || !hand.length || n <= 0) return [];
+    const taken = [];
+    for (let i = 0; i < n; i++) {
+      if (!hand.length) break;
+      const idx = Math.floor(Math.random() * hand.length);
+      taken.push(hand.splice(idx, 1)[0]);
+    }
+    return taken;
+  }
+
   function applySkill(user, type, target) {
     const hand = state.hands[user];
     if (!hand) return false;
-    const cards = () => {
-      const generated = [];
-      for (let i = 0; i < (type === "Steal" ? 1 : 0); i++) {}
-      return generated;
-    };
     if (type === "DrawTwo") {
-      // 无中生有：抽 2 张随机牌
-      hand.push(generateRandomCard(), generateRandomCard());
+      // 无中生有：从出牌堆随机抽最多 2 张(有多少抽多少)
+      const drawn = drawFromDiscard(2);
+      hand.push(...drawn);
       sortHand(hand);
-      showToast(`${NAMES[user]} 使用了【无中生有】，获得 2 张牌！`, "success");
+      showToast(`${NAMES[user]} 使用了【无中生有】${drawn.length ? `，获得 ${drawn.length} 张牌！` : "，出牌堆为空无牌可抽！"}`, drawn.length ? "success" : "info");
     } else if (type === "Steal") {
       // 顺手牵羊：从目标偷 1 张随机牌
       if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
-      const targetHand = state.hands[target];
-      const idx = Math.floor(Math.random() * targetHand.length);
-      const stolen = targetHand.splice(idx, 1)[0];
+      const stolen = takeRandomFromHand(target, 1)[0];
       hand.push(stolen);
       sortHand(hand);
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【顺手牵羊】！`, "success");
     } else if (type === "Discard") {
-      // 过河拆桥：目标弃 1 张随机牌
+      // 过河拆桥：目标弃 1 张随机牌(直接移出本局, 不进废弃堆)
       if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
-      const targetHand = state.hands[target];
-      const idx = Math.floor(Math.random() * targetHand.length);
-      targetHand.splice(idx, 1);
+      takeRandomFromHand(target, 1);
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【过河拆桥】！`, "success");
     } else if (type === "Skip") {
       // 乐不思蜀：目标下回合跳过
@@ -614,19 +670,82 @@
       state.skipNextTurn[target] = true;
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【乐不思蜀】，下回合被跳过！`, "success");
     } else if (type === "Harvest") {
-      // 五谷丰登：所有未出完的玩家各抽 1 张
-      for (let i = 0; i < 4; i++) {
-        if (!state.finishOrder.includes(i) && state.hands[i] && state.hands[i].length > 0) {
-          state.hands[i].push(generateRandomCard());
-          sortHand(state.hands[i]);
+      // 五谷丰登：所有未出完玩家各从出牌堆获得最多1张(出牌堆不足时随机分配给若干人)
+      const active = [0, 1, 2, 3].filter(s => !state.finishOrder.includes(s) && state.hands[s] && state.hands[s].length > 0);
+      const available = state.discardPile.length;
+      if (available > 0) {
+        // 随机打乱获得顺序, 避免固定座位优势
+        const order = [...active].sort(() => Math.random() - 0.5);
+        const drawCount = Math.min(available, active.length);
+        for (let i = 0; i < drawCount; i++) {
+          const seat = order[i];
+          const drawn = drawFromDiscard(1);
+          if (drawn.length) {
+            state.hands[seat].push(drawn[0]);
+            sortHand(state.hands[seat]);
+          }
         }
       }
-      showToast(`${NAMES[user]} 使用了【五谷丰登】，每人获得 1 张牌！`, "success");
+      showToast(`${NAMES[user]} 使用了【五谷丰登】${available ? "，未出完玩家各获得牌！" : "，出牌堆为空！"}`, available ? "success" : "info");
+    } else if (type === "Swap") {
+      // 移花接木：与目标随机交换 1 张手牌
+      if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
+      const myCard = takeRandomFromHand(user, 1)[0];
+      const tarCard = takeRandomFromHand(target, 1)[0];
+      hand.push(tarCard);
+      state.hands[target].push(myCard);
+      sortHand(hand);
+      sortHand(state.hands[target]);
+      showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【移花接木】, 交换了 1 张牌！`, "success");
+    } else if (type === "Peek") {
+      // 明察秋毫：查看目标最多 3 张手牌(只有使用者本人可见)
+      if (target === undefined || !state.hands[target]) return false;
+      const targetHand = state.hands[target];
+      const count = Math.min(3, targetHand.length);
+      const peeked = [...targetHand].slice(0, count).map(c => cardText(c));
+      state.peekResult = { target, cards: peeked };
+      showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【明察秋毫】！`, "success");
+      // 弹窗展示(仅使用者), 2秒后自动关闭
+      showPeekDialog(peeked, NAMES[target]);
+    } else if (type === "Replace") {
+      // 偷梁换柱：弃自己 1 张(移出本局), 再从出牌堆抽 1 张
+      if (!hand.length || !state.discardPile.length) return false;
+      takeRandomFromHand(user, 1);
+      const drawn = drawFromDiscard(1);
+      if (drawn.length) { hand.push(drawn[0]); sortHand(hand); }
+      showToast(`${NAMES[user]} 使用了【偷梁换柱】！`, "success");
+    } else if (type === "EmptyFort") {
+      // 空城计：手牌≤6时, 本回合免疫其他玩家的目标型技能
+      if (state.hands[user].length > 6) return false;
+      state.emptyFortImmunity[user] = true;
+      showToast(`${NAMES[user]} 使用了【空城计】, 本回合免疫目标型技能！`, "success");
+    } else if (type === "SoundEastWest") {
+      // 声东击西：锁定目标技能, 逼其主动用技能解除(消耗1张)
+      if (target === undefined) return false;
+      if (state.distracted[target]) return false; // 已有该状态, 无效
+      state.distracted[target] = true;
+      showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【声东击西】！`, "success");
     }
     return true;
   }
 
   function closeDialog(dialog) { if (dialog && dialog.open && typeof dialog.close === "function") dialog.close(); }
+
+  // 明察秋毫: 展示查看到的牌(仅使用者本人), 2秒后自动关闭
+  function showPeekDialog(cards, targetName) {
+    const dialog = byId("skill-peek-dialog");
+    if (!dialog) return;
+    const body = byId("skill-peek-list");
+    if (body) {
+      body.innerHTML = (cards && cards.length)
+        ? cards.map(c => `<span class="peek-card">${escapeHtml(c)}</span>`).join("")
+        : `<span class="skill-empty">目标手牌为空</span>`;
+    }
+    const title = byId("skill-peek-title");
+    if (title) title.textContent = `${targetName} 的手牌`;
+    dialog.showModal?.();
+    setTimeout(() => { if (dialog.open) dialog.close(); }, 2000);
+  }
 
   // 使用技能（人类/AI 都走这里）：消耗技能卡 + 刷新 + 同步
   function useSkill(user, type, target, cardIdx) {
@@ -645,6 +764,12 @@
       const mine = state.skillCards[user] || [];
       const idx = cardIdx !== undefined ? cardIdx : mine.findIndex(s => s.type === type);
       if (idx >= 0) mine.splice(idx, 1);
+      // 声东击西解除: 处于该状态的玩家用技能后立即解除
+      if (state.distracted[user]) {
+        state.distracted[user] = false;
+      }
+      // 每回合最多用1张技能: 标记本回合已用技能
+      state.usedSkillThisTurn = true;
       state.selected.clear();
       // 技能使用反馈：给触发技能卡加动画 + 出牌区横幅提示
       const usedSkill = document.querySelector(`.skill-card[data-skill-idx="${idx}"]`);
@@ -673,38 +798,77 @@
 
   /* ═══ 进贡 / 还贡 / 抗贡（上一局结束后，下一局发牌完自动执行）═══ */
   function performTribute(prevOrder) {
-    if (state.round <= 1 || !prevOrder || prevOrder.length < 4) return;
-    const leader = prevOrder[0];
-    const last = prevOrder[3];
-    // 抗贡：末游抓到两张大王，免进贡并由末游先出
-    const bigJokers = state.hands[last].filter(c => c.joker && c.big);
-    if (bigJokers.length >= 2) {
+    if (state.round <= 1 || !prevOrder || prevOrder.length < 4) return; // 第1局不进贡
+    const head = prevOrder[0];       // 头游 (seat)
+    const second = prevOrder[1];     // 二游 (seat)
+    const third = prevOrder[2];      // 三游 (seat)
+    const last = prevOrder[3];       // 末游/下游 (seat)
+    const sweep = (head % 2) === (second % 2); // 双下: 头游+二游同队(赢家包揽前二)
+
+    // ── 进贡方(输家方) & 抗贡判定 ──
+    // 单下: 只有末游进贡; 双下: 三游+末游都进贡
+    const givers = sweep ? [third, last] : [last];
+    // 抗贡: 应进贡方合计拥有两张大王 (一人两张 或 各一张 都算)
+    const giversBigJokers = givers.reduce((n, s) => n + state.hands[s].filter(c => c.joker && c.big).length, 0);
+    if (giversBigJokers >= 2) {
+      // 抗贡成功: 免去所有进贡还贡, 由头游(赢家)先出牌
+      state.dealer = head;
+      showToast(`${givers.map(s => NAMES[s]).join("、")} 合计抓两张大王，抗贡！由 ${NAMES[head]} 先出牌`, "success");
+      return;
+    }
+
+    // ── 进贡牌: 每个进贡方给最大一张(逢人配红桃级牌除外) ──
+    const pickTribute = seat => {
+      const eligible = state.hands[seat].filter(c => !(c.suit === "♥" && c.rank === state.level));
+      if (!eligible.length) return null;
+      return eligible.reduce((a, b) => rankValue(b.rank) > rankValue(a.rank) ? b : a);
+    };
+
+    // ── 单下: 末游→头游 ──
+    if (!sweep) {
+      const tribute = pickTribute(last);
+      if (!tribute) { state.dealer = last; return; } // 无可贡则下游先出
+      removeCard(last, tribute.id);
+      state.hands[head].push(tribute);
+      // 还贡: 头游还一张≤10(逢人配除外)给末游(拿谁牌还谁)
+      const repay = pickRepay(head);
+      if (repay) { removeCard(head, repay.id); state.hands[last].push(repay); }
+      state.hands.forEach(sortHand);
+      // 非抗贡: 下游(末游)先出
       state.dealer = last;
-      showToast(`${NAMES[last]} 抓到两张大王，抗贡！由 ${NAMES[last]} 先出牌`, "success");
+      showToast(`${NAMES[last]} 向 ${NAMES[head]} 进贡 ${cardText(tribute)}${repay ? `，${NAMES[head]} 还 ${cardText(repay)}` : ""}`, "info");
       return;
     }
-    // 进贡牌：末游手中除红桃级牌外最大的一张（包含大小王）
-    const eligible = state.hands[last].filter(c => !(c.suit === "♥" && c.rank === state.level));
-    if (!eligible.length) {
-      state.dealer = leader;
-      return;
-    }
-    const tribute = eligible.reduce((a, b) => rankValue(b.rank) > rankValue(a.rank) ? b : a);
-    removeCard(last, tribute.id);
-    state.hands[leader].push(tribute);
-    // 还贡：头游还一张 10 及以下的牌（自动选最小；没有则跳过）
-    const repayable = state.hands[leader].filter(c => !c.joker && naturalValue(c.rank) <= 10);
-    let repay = null;
-    if (repayable.length) {
-      repay = repayable.reduce((a, b) => naturalValue(b.rank) < naturalValue(a.rank) ? b : a);
-      removeCard(leader, repay.id);
-      state.hands[last].push(repay);
-    }
+
+    // ── 双下: 三游+末游各进贡, 头游+二游各收贡 ──
+    const g1 = pickTribute(third), g2 = pickTribute(last);
+    if (!g1 || !g2) { state.dealer = last; return; }
+    // 贡牌按点数排序: 大给头游, 小给二游; 同点按顺时针(头游先拿)
+    let big = g1, small = g2;          // big 将给头游, small 给二游
+    if (rankValue(g1.rank) < rankValue(g2.rank)) { big = g2; small = g1; }
+    // 确定大贡/小贡的来源(配对应还给的进贡者)
+    const bigGiver = (g1 === big) ? third : last;    // 大贡来自谁 → 头游还给他
+    const smallGiver = (g2 === small) ? last : third; // 小贡来自谁 → 二游还给他
+    // 移除两张贡牌
+    removeCard(third, g1.id); removeCard(last, g2.id);
+    // 双下分配(头游拿大)
+    state.hands[head].push(big);
+    state.hands[second].push(small);
+    // 还贡: 拿谁牌精准还谁 — 头游还给大贡者, 二游还给小贡者
+    const repayHead = pickRepay(head), repaySecond = pickRepay(second);
+    if (repayHead) { removeCard(head, repayHead.id); state.hands[bigGiver].push(repayHead); }
+    if (repaySecond) { removeCard(second, repaySecond.id); state.hands[smallGiver].push(repaySecond); }
     state.hands.forEach(sortHand);
-    state.dealer = leader;
-    const message = `${NAMES[last]} 向 ${NAMES[leader]} 进贡 ${cardText(tribute)}` +
-      (repay ? `，${NAMES[leader]} 还 ${cardText(repay)}` : "");
-    showToast(message, "info");
+    // 双下出牌权: 非抗贡, 贡牌牌点较大者先出
+    state.dealer = (rankValue(big.rank) >= rankValue(small.rank)) ? bigGiver : smallGiver;
+    showToast(`${NAMES[third]} 向 ${NAMES[head]} 进贡 ${cardText(g1)}，${NAMES[last]} 向 ${NAMES[second]} 进贡 ${cardText(g2)}${repayHead ? `，${NAMES[head]} 还 ${cardText(repayHead)}` : ""}${repaySecond ? `，${NAMES[second]} 还 ${cardText(repaySecond)}` : ""}`, "info");
+  }
+
+  // 还贡: 从赢家手中选一张≤10的牌(逢人配红桃级牌除外), 自动选最小
+  function pickRepay(seat) {
+    const repayable = state.hands[seat].filter(c => !c.joker && !(c.suit === "♥" && c.rank === state.level) && naturalValue(c.rank) <= 10);
+    if (!repayable.length) return null;
+    return repayable.reduce((a, b) => naturalValue(b.rank) < naturalValue(a.rank) ? b : a);
   }
 
   function commitPlay(player, cards, combo) {
@@ -712,6 +876,8 @@
     state.currentPlay = { cards: [...cards], combo };
     state.lastPlayer = player;
     state.passCount = 0;
+    // 出牌堆: 本局所有打出的牌累积(供技能抽取)
+    state.discardPile.push(...cards);
     state.history.push({ player, action: "play", combo: combo.type, count: cards.length });
     playSfx(isBomb(combo) ? "bomb" : "play");
 
@@ -754,6 +920,9 @@
       next = (next + 3) % 4;
       guard++;
     }
+    // 切换到新玩家回合: 重置本回合技能使用标记 + 空城计免疫
+    state.usedSkillThisTurn = false;
+    state.emptyFortImmunity = [false, false, false, false];
     return next;
   }
 
@@ -926,46 +1095,99 @@
     if (!state.skillMode || state.locked || state.currentPlayer !== player) return false;
     const skills = state.skillCards[player] || [];
     if (!skills.length) return false;
+    if (state.usedSkillThisTurn) return false; // 每回合最多1张
     const handCount = state.hands[player].length;
-    const myHandSmall = handCount <= 8;
     const team = player % 2;
-    // 对手（未出完）中手牌最少的：威胁最大
     const opponents = [0, 1, 2, 3].filter(s => s !== player && !state.finishOrder.includes(s) && s % 2 !== team);
     const teammate = [0, 1, 2, 3].find(s => s !== player && s % 2 === team && !state.finishOrder.includes(s));
     if (!opponents.length) return false;
 
-    // 找威胁最大的对手（手牌最少）
+    // 最危险对手 = 手牌最少的对手
     const mostThreat = opponents.reduce((a, b) => state.hands[a].length < state.hands[b].length ? a : b, opponents[0]);
     const threatCards = state.hands[mostThreat].length;
+    // 队友(若有)手牌
+    const teammateCards = teammate !== undefined ? state.hands[teammate].length : 99;
+    // 出牌堆数量
+    const pile = state.discardPile.length;
+    // 敌对玩家拥有的技能类型(判断对手是否还有目标型技能)
+    const enemyHasTargetSkill = opponents.some(s => (state.skillCards[s] || []).some(x => ["Steal", "Discard", "Skip", "Swap", "SoundEastWest"].includes(x.type)));
+    // 自己被声东击西锁定: 优先用技能解除
+    const selfDistracted = state.distracted[player];
 
     const has = type => skills.some(s => s.type === type);
     const skillOf = type => skills.find(s => s.type === type);
+    // 空城计免疫的目标不能选
+    const validTargets = opponents.filter(s => !state.emptyFortImmunity[s]);
+    const target = validTargets.length ? validTargets.reduce((a, b) => state.hands[a].length < state.hands[b].length ? a : b, validTargets[0]) : null;
 
-    // ── 优先级 1: 对手手牌较少(≤14张) → 用乐不思蜀/过河拆桥压制 ──
-    if (threatCards <= 14) {
-      if (has("Skip")) { useSkill(player, "Skip", mostThreat); return true; }
-      if (has("Discard")) { useSkill(player, "Discard", mostThreat); return true; }
-    }
-    // ── 优先级 2: 顺风(自己能冲头游, 手牌很少) → 用顺手牵羊减少对手牌 ──
-    if (myHandSmall && threatCards <= 18 && has("Steal")) {
-      useSkill(player, "Steal", mostThreat); return true;
-    }
-    // ── 优先级 3: 队友快出完(帮队友) → 五谷登丰/顺手牵羊加固队友 ──
-    if (teammate !== undefined && state.hands[teammate].length <= 10 && has("Harvest")) {
-      useSkill(player, "Harvest"); return true;
-    }
-    // ── 优先级 4: 自己手牌少想补牌(但别冲头游时用) → 无中生有 ──
-    if (handCount <= 14 && handCount > 4 && has("DrawTwo")) {
-      useSkill(player, "DrawTwo"); return true;
-    }
-    // ── 兜底: 有一定概率用一张(保持活跃但非每回合) ──
-    if (Math.random() < 0.5) {
-      const type = skills[Math.floor(Math.random() * skills.length)].type;
-      const target = SKILL_NEEDS_TARGET(type) ? mostThreat : undefined;
-      useSkill(player, type, target);
-      return true;
-    }
-    return false;
+    // ── 每张技能评分 ──
+    const scores = skills.map(s => {
+      let score = 0;
+      let bestTarget = target;
+      switch (s.type) {
+        case "Skip": // 乐不思蜀: 对手≤8分最高, ≤14次之
+          if (threatCards <= 5) score = 100;
+          else if (threatCards <= 8) score = 80;
+          else if (threatCards <= 14) score = 55;
+          break;
+        case "Discard": // 过河拆桥: 对手牌少得分高
+          if (threatCards <= 8) score = 75;
+          else if (threatCards <= 14) score = 50;
+          break;
+        case "Steal": // 顺手牵羊: 对手≤8且自己不是太多牌
+          if (threatCards <= 8 && handCount <= 15) score = 70;
+          else if (threatCards <= 12) score = 45;
+          break;
+        case "EmptyFort": // 空城计: 自己≤6且敌方仍有望手牌类目标技能
+          if (handCount <= 6 && enemyHasTargetSkill) score = 90;
+          break;
+        case "SoundEastWest": // 声东击西: 目标对手拥有高价值技能
+          {
+            const skillVals = { Skip: 100, Discard: 90, Steal: 80, DrawTwo: 70, Harvest: 60, Swap: 40, Replace: 35, Peek: 20, EmptyFort: 30, SoundEastWest: 50 };
+            if (target !== null) {
+              const targetVals = (state.skillCards[target] || []).map(x => skillVals[x.type] || 0);
+              const targetScore = targetVals.reduce((a, b) => a + b, 0);
+              if (targetScore >= 120 && threatCards >= 6 && threatCards <= 12) score = 85;
+              else if (targetScore >= 90) score = 60;
+            }
+          }
+          break;
+        case "Harvest": // 五谷丰登: 队友≤8且对手≥10 或明显差距
+          if (teammateCards <= 8 && threatCards >= 10) score = 60;
+          else if (teammateCards <= 6 && threatCards >= 8) score = 55;
+          break;
+        case "DrawTwo": // 无中生有: 自己5~10且出牌堆有牌且无≤8张的对手
+          if (handCount >= 5 && handCount <= 10 && pile >= 1 && threatCards > 8) score = 50;
+          break;
+        case "Replace": // 偷梁换柱: 自己7~15且出牌堆有牌
+          if (handCount >= 7 && handCount <= 15 && pile >= 1) score = 35;
+          break;
+        case "Swap": // 移花接木: 自己明显少于目标
+          if (target !== null && state.hands[target].length >= handCount + 4 && handCount <= 12) score = 30;
+          break;
+        case "Peek": // 明察秋毫: 对手≤10且无更好技能
+          if (threatCards <= 10) score = 20;
+          break;
+      }
+      // 声东击西锁定: 处在锁定状态的玩家, 用任意技能解除时加权(优先用高价值技能以外的起解除作用)
+      if (selfDistracted && s.type !== "SoundEastWest") score += 25;
+      // 被目标免疫时该目标不可用, 若该技能必须目标则扣分
+      if (SKILL_NEEDS_TARGET(s.type) && target === null) score = -50;
+      return { type: s.type, score, target: bestTarget };
+    });
+
+    // 选分数最高的
+    scores.sort((a, b) => b.score - a.score);
+    const best = scores[0];
+    // 最低阈值: 分数低于30不使用(避免无脑随机)
+    if (best.score < 30) return false;
+    const useTarget = SKILL_NEEDS_TARGET(best.type) ? (best.target !== null ? best.target : target) : undefined;
+    // 空城计免疫的目标不能作为目标, 重新选
+    let finalTarget = useTarget;
+    if (finalTarget !== undefined && state.emptyFortImmunity[finalTarget]) return false;
+    if (SKILL_NEEDS_TARGET(best.type) && finalTarget === undefined) return false;
+    useSkill(player, best.type, finalTarget, skills.findIndex(s => s.type === best.type));
+    return true;
   }
 
   function scheduleAI() {
@@ -1064,15 +1286,23 @@
     state.hands = [[], [], [], []];
     deck.forEach((card, index) => state.hands[index % 4].push(card));
     state.hands.forEach(sortHand);
-    // 技能模式：每局重新发技能卡 + 重置跳过效果
+    // 技能模式：每局重新发技能卡 + 重置技能状态 + 清空出牌堆
     if (state.skillMode) {
       dealSkillCards();
       state.skipNextTurn = [false, false, false, false];
       state.skillTarget = null;
       state.skillPending = null;
+      state.discardPile = [];
+      state.distracted = [false, false, false, false];
+      state.emptyFortImmunity = [false, false, false, false];
+      state.usedSkillThisTurn = false;
     } else {
       state.skillCards = [[], [], [], []];
       state.skipNextTurn = [false, false, false, false];
+      state.discardPile = [];
+      state.distracted = [false, false, false, false];
+      state.emptyFortImmunity = [false, false, false, false];
+      state.usedSkillThisTurn = false;
     }
     // 上一局结束 → 下一局发牌后自动进贡/还贡/抗贡（需在 finishOrder 清空前读取）
     const prevOrder = state.finishOrder.length === 4 ? [...state.finishOrder] : null;
@@ -1293,6 +1523,7 @@
       teamLevels: state.teamLevels, teamWins: state.teamWins, dealer: state.dealer,
       lastAdvance: state.lastAdvance, names: NAMES,
       skillMode: state.skillMode, skillCards: state.skillCards, skipNextTurn: state.skipNextTurn,
+      discardPile: state.discardPile, distracted: state.distracted, emptyFortImmunity: state.emptyFortImmunity,
       result: {
         title: el["result-title"].textContent, copy: el["result-copy"].textContent,
         again: el["again-button"].textContent, resetMatch: el["again-button"].dataset.resetMatch
@@ -1334,7 +1565,7 @@
     const previousHistorySize = state.history.length;
     const wasLocked = state.locked;
     if (snapshot.round !== state.round || (wasLocked && !snapshot.locked)) state.animateDeal = true;
-    const fields = ["level", "round", "hands", "currentPlayer", "currentPlay", "lastPlayer", "passCount", "finishOrder", "locked", "history", "teamLevels", "teamWins", "dealer", "lastAdvance", "skillMode", "skillCards", "skipNextTurn"];
+    const fields = ["level", "round", "hands", "currentPlayer", "currentPlay", "lastPlayer", "passCount", "finishOrder", "locked", "history", "teamLevels", "teamWins", "dealer", "lastAdvance", "skillMode", "skillCards", "skipNextTurn", "discardPile", "distracted", "emptyFortImmunity"];
     fields.forEach(field => { state[field] = snapshot[field]; });
     NAMES = [...snapshot.names];
     state.selected.clear();
@@ -1433,7 +1664,46 @@
     resume: scheduleAI,
     // ── 技能模式开关（由入口传入）──
     setSkillMode(on) { state.skillMode = Boolean(on); },
-    getSkillMode() { return state.skillMode; }
+    getSkillMode() { return state.skillMode; },
+    // ── 测试钩子(调试用) ──
+    __testSkill(type, target) {
+      const before = { hand: state.hands[state.localPlayer].length, pile: state.discardPile.length, tgt: target !== undefined ? state.hands[target].length : null };
+      const ok = applySkill(state.localPlayer, type, target);
+      return { ok, before, after: { hand: state.hands[state.localPlayer].length, pile: state.discardPile.length, tgt: target !== undefined ? state.hands[target].length : null } };
+    },
+    __getState() { return { hand: state.hands[state.localPlayer].length, pile: state.discardPile.length, skillMode: state.skillMode }; },
+    __setDebug({ handCards, pileCards, distracted, emptyFortImmunity }) {
+      if (handCards !== undefined) state.hands[state.localPlayer] = Array.from({length: handCards}, (_,i)=>({id:'t'+i, suit:'♠', rank:String(i), copy:2, joker:false}));
+      if (pileCards !== undefined) state.discardPile = Array.from({length: pileCards}, (_,i)=>({id:'p'+i, suit:'♣', rank:String(i), copy:2, joker:false}));
+      if (distracted !== undefined) state.distracted = [...distracted];
+      if (emptyFortImmunity !== undefined) state.emptyFortImmunity = [...emptyFortImmunity];
+    },
+    __setSeatHand(seat, cards) {
+      state.hands[seat] = cards.map((c, i) => ({ id: `${seat}-${c.suit}-${c.rank}-${i}`, suit: c.suit, rank: c.rank, copy: c.copy || 2, joker: c.joker, big: c.big }));
+      if (cards.length) sortHand(state.hands[seat]);
+    },
+    __forceRender() { render(); },
+    __debugState() { return {
+      round: state.round, level: state.level, dealer: state.dealer,
+      currentPlayer: state.currentPlayer, localPlayer: state.localPlayer,
+      finishOrder: [...state.finishOrder], names: [...NAMES],
+      handCounts: state.hands.map(h => h.length), discardPile: state.discardPile.length,
+      skillMode: state.skillMode, locked: state.locked
+    }; },
+    __finishOrder(order) { state.finishOrder = [...order]; },
+    __callTribute(order) {
+      if (order !== undefined) state.finishOrder = [...order];
+      const before = state.hands.map(h => h.length);
+      performTribute([...state.finishOrder]);
+      return {
+        round: state.round, dealer: state.dealer,
+        handBefore: before, handAfter: state.hands.map(h => h.length),
+        toast: (el.toast ? el.toast.textContent : "")
+      };
+    },
+    __readHand(seat) { return (state.hands[seat] || []).slice(0, 31).map(c => ({ id: c.id, suit: c.suit, rank: c.rank, joker: !!c.joker, big: !!c.big })); },
+    __level() { return state.level; },
+    __setRound(r) { state.round = r; }
   };
 
   function shortcutAction(event) {

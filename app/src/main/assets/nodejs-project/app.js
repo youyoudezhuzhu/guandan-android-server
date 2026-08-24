@@ -119,7 +119,8 @@
     const speed = 100 / settings.motionSpeed;
     [["--motion-hero", .7], ["--motion-deal", .36], ["--motion-play", .22], ["--motion-float-card", 5], ["--motion-float-one", 7], ["--motion-float-two", 8], ["--motion-float-three", 9], ["--motion-aurora", 24], ["--motion-transition", .25]]
       .forEach(([property, seconds]) => document.body.style.setProperty(property, `${seconds * speed}s`));
-    document.querySelector(".announcement-card").classList.toggle("view-hidden", !settings.announcements);
+    const announcementCard = document.querySelector(".announcement-card");
+    if (announcementCard) announcementCard.classList.toggle("view-hidden", !settings.announcements);
     document.body.classList.toggle("announcement-hidden", !settings.announcements);
     window.GuandanGame?.setAudio({ sound: settings.sound, music: settings.music, sfxVolume: settings.sfxVolume / 100, bgmVolume: settings.bgmVolume / 100, sfxPitch: settings.sfxPitch / 100, bgmTempo: settings.bgmTempo / 100, sfxProfile: settings.sfxProfile, bgmTexture: settings.bgmTexture });
     window.GuandanGame?.setPreferences({ aiDelay: settings.aiDelay, autoScrollHints: settings.autoScroll, confirmRestart: settings.confirmRestart, haptics: settings.haptics, hapticStrength: settings.hapticStrength / 100, toastDuration: settings.toastDuration });
@@ -336,7 +337,7 @@
   $("cancel-mode-select").addEventListener("click", () => close($("mode-select-dialog")));
   $("mode-select-dialog").addEventListener("cancel", event => { event.preventDefault(); close($("mode-select-dialog")); });
   $("home-button").addEventListener("click", () => { leaveRoom(); showHome(); });
-  [$("settings-button"), $("home-settings-button"), $("game-settings-button")].forEach(button => button.addEventListener("click", openSettings));
+  [$("settings-button"), $("game-settings-button")].forEach(button => button.addEventListener("click", openSettings));
   $("close-settings").addEventListener("click", closeSettings);
   $("settings-dialog").addEventListener("cancel", event => { event.preventDefault(); closeSettings(); });
   $("tutorial-button").addEventListener("click", () => { tutorialStep = 0; renderTutorial(); open($("tutorial-dialog")); });
