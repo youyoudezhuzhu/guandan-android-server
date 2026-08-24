@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071b18" />
     <meta name="description" content="四人掼蛋单机与局域网对局" />
-    <title>掼蛋 · Hanazar Games v1.4.0</title>
+    <title>掼蛋 · Hanazar Games v1.4.1</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -49,7 +49,7 @@
         </aside>
       </section>
 
-      <footer class="home-footer"><span>v1.4.0 · Hanazar Games</span><span class="server-ready"><i></i><span data-i18n="ready">准备就绪</span></span></footer>
+      <footer class="home-footer"><span>v1.4.1 · Hanazar Games</span><span class="server-ready"><i></i><span data-i18n="ready">准备就绪</span></span></footer>
     </main>
 
     <main class="game-shell view-hidden" id="game-screen">
@@ -183,7 +183,7 @@
       </section>
 
       <footer class="game-footer">
-        <span><i class="online-dot"></i><span id="game-mode-label" data-i18n="singlePlayer">单机练习</span> <small class="version-tag">v1.4.0</small></span>
+        <span><i class="online-dot"></i><span id="game-mode-label" data-i18n="singlePlayer">单机练习</span> <small class="version-tag">v1.4.1</small></span>
         <span id="footer-tip">你的搭档坐在对面</span>
       </footer>
     </main>
@@ -258,7 +258,7 @@
           <label class="setting-toggle"><span><b data-i18n="haptics">震动反馈</b><small data-i18n="hapticsCopy">支持设备在炸弹与获胜时震动</small></span><input id="setting-haptics" type="checkbox"><i></i></label>
           <label class="range-setting"><span><b data-i18n="hapticStrength">震动强度</b><output class="range-value" for="setting-haptic-strength">100%</output></span><input id="setting-haptic-strength" type="range" min="25" max="200" step="25" value="100"></label>
         </section>
-        <section id="settings-panel-about" class="settings-section about-section" role="tabpanel" aria-labelledby="settings-tab-about" data-settings-panel="about" hidden><h3 data-i18n="about">关于</h3><p>Guandan Webgame v1.4.0</p>
+        <section id="settings-panel-about" class="settings-section about-section" role="tabpanel" aria-labelledby="settings-tab-about" data-settings-panel="about" hidden><h3 data-i18n="about">关于</h3><p>Guandan Webgame v1.4.1</p>
           <div class="about-links"><a href="https://github.com/Hanazar-Games/Guandan-Webgame" target="_blank" rel="noopener">GitHub Repository</a><a href="https://github.com/Hanazar-Games/Guandan-Webgame/issues" target="_blank" rel="noopener">Issues</a><a href="https://github.com/Hanazar-Games/Guandan-Webgame/discussions" target="_blank" rel="noopener">Discussions</a><a href="https://github.com/hzagaming" target="_blank" rel="noopener">HzaGaming</a><a href="https://hanazargames.com/" target="_blank" rel="noopener" data-i18n="officialHome">返回官网</a></div>
         </section>
       </div>
@@ -286,6 +286,25 @@
         <p class="lan-status" id="lan-connect-status" role="status"></p>
       </div>
       <div class="lan-lobby view-hidden" id="lan-lobby"><div class="room-code-card"><span data-i18n="roomCode">房间码</span><strong id="current-room-code">------</strong><button id="copy-room-code" type="button" data-i18n="copy">复制</button></div><p class="lan-address" id="lan-address"></p><div class="lan-players" id="lan-players"></div><p class="lan-status" id="lan-status" role="status"></p><label class="lan-skill-toggle" id="lan-skill-toggle-wrap" style="display:none"><input type="checkbox" id="lan-skill-mode"><span data-i18n="skillMode">技能模式（无中生有/顺手牵羊/过河拆桥/乐不思蜀/五谷登丰）</span></label><div class="lan-lobby-actions"><button class="game-button secondary" id="leave-room" type="button" data-i18n="leaveRoom">退出房间</button><button class="game-button primary lan-start" id="start-lan-game" type="button" data-i18n="startGame">开始游戏</button></div></div>
+    </dialog>
+
+    <dialog id="mode-select-dialog" class="modal mode-select-modal" aria-labelledby="mode-select-title">
+      <p class="eyebrow">单机练习</p>
+      <h2 id="mode-select-title">选择游戏模式</h2>
+      <p class="mode-select-copy">与三位本地 AI 对局，选择一种玩法。</p>
+      <div class="mode-select-grid">
+        <button class="mode-option" id="mode-normal" type="button">
+          <span class="mode-option-icon">♠</span>
+          <span class="mode-option-body"><b data-i18n="modeNormal">常规模式</b><small data-i18n="modeNormalCopy">经典掼蛋规则，稳扎稳打</small></span>
+          <i>→</i>
+        </button>
+        <button class="mode-option" id="mode-skill" type="button">
+          <span class="mode-option-icon">技</span>
+          <span class="mode-option-body"><b data-i18n="modeSkill">技能模式</b><small data-i18n="modeSkillCopy">无中生有/顺手牵羊/过河拆桥/乐不思蜀/五谷登丰</small></span>
+          <i>→</i>
+        </button>
+      </div>
+      <button class="game-button secondary modal-confirm" id="cancel-mode-select" type="button" data-i18n="back">返回</button>
     </dialog>
 
     <dialog id="restart-dialog" class="modal restart-modal" aria-labelledby="restart-title" aria-describedby="restart-copy">
@@ -330,10 +349,22 @@
             if (enter) enter.call(el);
           }
         };
+        var tryEnter = function () {
+          if (fsEl()) return true;
+          var el = document.documentElement;
+          var enter = el.requestFullscreen || el.webkitRequestFullscreen;
+          try { if (enter) enter.call(el); } catch (e) {}
+        };
         btn.addEventListener("click", function (e) { e.stopPropagation(); toggle(); });
         var sync = function () { btn.classList.toggle("fs", !!fsEl()); };
         document.addEventListener("fullscreenchange", sync);
         document.addEventListener("webkitfullscreenchange", sync);
+        // 默认全屏：加载后尝试进入；若手势受限，则在首次触摸/点击兜底
+        try { tryEnter(); } catch (e) {}
+        var onceGesture = function () { tryEnter(); };
+        window.addEventListener("touchstart", onceGesture, { once: true, passive: true });
+        window.addEventListener("pointerdown", onceGesture, { once: true, passive: true });
+        window.addEventListener("keydown", onceGesture, { once: true });
       })();
     </script>
     <script src="script.js"></script>

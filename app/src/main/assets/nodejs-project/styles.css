@@ -291,6 +291,17 @@ button:focus-visible, .card:focus-visible { outline: 3px solid var(--gold-bright
 .restart-modal { text-align:center; padding:30px; }
 .restart-modal > p:not(.eyebrow) { margin:12px 0 24px; color:var(--muted); font-size:13px; line-height:1.7; }
 .modal-actions { display:flex; justify-content:center; gap:10px; }
+.mode-select-modal { text-align:center; padding:22px 26px; display:flex; flex-direction:column; }
+.mode-select-copy { margin:4px 0 16px; color:var(--muted); font-size:13px; line-height:1.5; }
+.mode-select-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+.mode-option { display:flex; align-items:center; gap:12px; padding:12px 14px; text-align:left; border:1px solid rgba(255,255,255,.14); border-radius:12px; background:linear-gradient(180deg,rgba(35,62,53,.9),rgba(16,38,32,.9)); color:var(--ink); cursor:pointer; transition:.18s ease; }
+.mode-option:hover { border-color:var(--gold); transform:translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.3); }
+.mode-option-icon { width:36px; height:36px; display:grid; place-items:center; flex-shrink:0; border-radius:9px; background:linear-gradient(180deg,rgba(216,182,106,.25),rgba(120,90,40,.2)); font-size:19px; }
+.mode-option-body { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.mode-option-body b { font-size:14px; color:#f4edd8; }
+.mode-option-body small { font-size:11px; color:var(--muted); opacity:.85; }
+.mode-option > i { margin-left:auto; color:var(--gold); font-style:normal; font-size:18px; }
+.mode-select-modal .modal-confirm { margin:auto auto 0; }
 .result-modal { text-align:center; padding:30px; }
 .result-icon { width:62px; height:62px; display:grid; place-items:center; margin:0 auto 14px; border:1px solid var(--gold); border-radius:50%; color:#26311f; background:linear-gradient(145deg,#f1d58e,#ac7f34); font-family:"Songti SC","Noto Serif SC",serif; font-size:27px; box-shadow:0 0 35px rgba(216,182,106,.22); }
 .result-modal > p:not(.eyebrow) { color:var(--muted); font-size:13px; }
@@ -614,6 +625,11 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   .action-buttons { justify-content:center; gap:8px; }
   .action-buttons .game-button { height:38px; min-width:76px; padding:0 12px; gap:6px; font-size:12px; }
   .action-buttons .game-button .control-icon { width:16px; height:16px; }
+  /* 技能按钮大小与出牌按钮一致 */
+  .skill-bar .skill-card { height:38px; min-width:76px; padding:0 12px; gap:6px; border-radius:9px; }
+  .skill-bar .skill-card-glyph { width:16px; height:16px; font-size:11px; border-radius:4px; }
+  .skill-bar .skill-card-name { font-size:12px; }
+  .skill-bar .skill-card-desc { font-size:8px; }
   .selection-tip { margin-bottom:8px; font-size:12px; }
   .player-you { left:16px; bottom:22px; }
   .player-you .player-copy { display:none; }

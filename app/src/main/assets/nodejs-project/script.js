@@ -654,7 +654,7 @@
         banner.textContent = `${NAMES[user]} 使用【${SKILL_BUTTON_CN[type] || type}】`;
         trickZone.appendChild(banner);
         setTimeout(() => banner.classList.add("show"), 30);
-        setTimeout(() => { banner.classList.remove("show"); setTimeout(() => banner.remove(), 350); }, 1400);
+        setTimeout(() => { banner.classList.remove("show"); setTimeout(() => banner.remove(), 350); }, 700);
       }
       render();
       updateSelectionTip();
