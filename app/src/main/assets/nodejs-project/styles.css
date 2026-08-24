@@ -274,6 +274,7 @@ button:focus-visible, .card:focus-visible { outline: 3px solid var(--gold-bright
 .version-tag { padding:1px 5px; color:rgba(241,213,142,.72); border:1px solid rgba(216,182,106,.2); border-radius:8px; font-size:8px; letter-spacing:.5px; }
 
 .modal { width:min(560px,calc(100vw - 30px)); max-height:calc(100vh - 30px); max-height:calc(100dvh - 30px); overflow:auto; padding:0; color:var(--ink); background:linear-gradient(145deg,#123e36,#082a25); border:1px solid rgba(216,182,106,.5); border-radius:16px; box-shadow:0 25px 80px rgba(0,0,0,.6); }
+dialog.modal:not([open]) { display:none !important; }
 .modal[open] { animation:modal-enter var(--motion-transition) cubic-bezier(.2,.8,.2,1) both; }
 .modal::backdrop { background:rgba(0,8,7,.78); backdrop-filter:blur(5px); }
 .modal-head { display:flex; align-items:flex-start; justify-content:space-between; padding:25px 28px 18px; border-bottom:1px solid rgba(255,255,255,.1); }
