@@ -172,6 +172,18 @@
   const namesFromPlayers = players => {
     const names = ["牌手", "周舟", "林默", "许晏"];
     players?.forEach(player => { names[player.seat] = player.name; });
+    // 联机重名处理: 多个玩家都叫"牌手"(或任何同名)时自动加序号区分
+    const count = {};
+    names.forEach(n => { count[n] = (count[n] || 0) + 1; });
+    const seen = {};
+    names.forEach((n, i) => {
+      if (count[n] > 1) {
+        seen[n] = (seen[n] || 0) + 1;
+        names[i] = n === "牌手"
+          ? `牌手${["", "一", "二", "三", "四"][seen[n]] || seen[n]}`
+          : `${n}${seen[n]}`;
+      }
+    });
     return names;
   };
 

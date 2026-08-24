@@ -126,7 +126,10 @@
     peekResult: null,               // 明察秋毫查看结果(仅使用者本人用)
     // ── 进贡/还贡交互 ──
     repay: null,                    // 还贡等待: { giver, receiver, received } (进贡后待还贡, 手动选牌)
-    tributeLog: []                  // 本局进贡/还贡记录 [{type, from, to, card}] 供顶部常驻展示
+    tributeLog: [],                 // 本局进贡/还贡记录 [{type, card, to}] 供顶部常驻展示
+    skillLog: [],                   // 最近技能施加效果 [{name, res}] 最多4条
+    headSeat: null,                 // 头游 seat(进贡展示用)
+    secondSeat: null                // 二游 seat(进贡展示用)
   };
 
   let sfxVolume = 1;
@@ -398,7 +401,24 @@
     }
     // 声东击西锁定: 处于该状态的玩家出技能前需确认(确认后技能发出并解除锁定)
     if (state.distracted[state.localPlayer]) {
-      if (!window.confirm("你处于【声东击西】状态，使用技能将解除该状态。确认使用？")) return;
+      showDistractDialog("你处于【声东击西】状态，使用技能将解除该状态。确认使用？",
+        [{ label: "取消", primary: false, value: "cancel" }, { label: "确认", primary: true, value: "ok" }],
+        () => {
+          // 确认: 真正执行技能(无论是否需目标)
+          if (SKILL_NEEDS_TARGET(skill.type)) {
+            state.skillPending = { idx, type: skill.type };
+            openSkillTargetDialog();
+          } else {
+            useSkill(state.localPlayer, skill.type, undefined, idx);
+          }
+        });
+      return;
+    }
+    if (skill.type === "Replace") {
+      // 偷梁换柱: 需自选一张弃牌
+      state.skillPending = { idx, type: skill.type };
+      openSkillDiscardDialog();
+      return;
     }
     if (SKILL_NEEDS_TARGET(skill.type)) {
       // 需要目标：弹出对手选择
@@ -434,6 +454,65 @@
     }
     if (typeof dialog.showModal === "function") dialog.showModal();
     const cancel = byId("skill-target-cancel");
+    if (cancel) cancel.onclick = () => { state.skillPending = null; closeDialog(dialog); };
+  }
+
+  // 声东击西提示弹窗(替代 window.confirm, 和明察秋毫同样式)
+  function showDistractDialog(message, choices, onConfirm) {
+    const dialog = byId("skill-distract-dialog");
+    if (!dialog) { if (onConfirm && window.confirm(message)) onConfirm(); return; }
+    const body = byId("skill-distract-body");
+    if (body) {
+      let html = `<p class="skill-distract-msg">${escapeHtml(message)}</p>`;
+      if (choices && choices.length) {
+        html += `<div class="modal-actions">` + choices.map(c => `<button class="game-button ${c.primary ? "primary" : "secondary"}" data-v="${c.value}">${escapeHtml(c.label)}</button>`).join("") + `</div>`;
+      }
+      body.innerHTML = html;
+    }
+    dialog.showModal?.();
+    // choices 有值时绑 body 内按钮; 无值时绑底部的固定"确定"按钮
+    const bindables = body ? body.querySelectorAll(".modal-actions button") : [];
+    if (bindables.length) {
+      bindables.forEach(btn => {
+        btn.onclick = () => {
+          dialog.close();
+          if (btn.dataset.v !== "cancel") { if (onConfirm) onConfirm(); }
+        };
+      });
+    } else {
+      const confirm = byId("skill-distract-confirm");
+      if (confirm) confirm.onclick = () => { dialog.close(); if (onConfirm) onConfirm(); };
+      const cancel = byId("skill-distract-cancel");
+      if (cancel) cancel.onclick = () => dialog.close();
+    }
+  }
+
+
+  function openSkillDiscardDialog() {
+    const dialog = byId("skill-discard-dialog");
+    if (!dialog || !state.skillPending) return;
+    const list = byId("skill-discard-list");
+    if (list) {
+      const cards = state.hands[state.localPlayer] || [];
+      list.innerHTML = cards.length
+        ? cards.map((c, i) => {
+            const suitCls = c.joker ? "t-joker" : (c.suit === "♥" || c.suit === "♦") ? "t-suit-red" : "t-suit-black";
+            const text = c.joker ? cardText(c) : cardText(c);
+            return `<button class="skill-discard" data-i="${i}" data-id="${c.id}" type="button"><span class="peek-card ${suitCls}">${escapeHtml(text)}</span></button>`;
+          }).join("")
+        : `<span class="skill-empty">无牌可弃</span>`;
+      list.querySelectorAll(".skill-discard").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const cardId = btn.dataset.id;
+          const pending = state.skillPending;
+          state.skillPending = null;
+          closeDialog(dialog);
+          useSkill(state.localPlayer, pending.type, undefined, pending.idx, cardId);
+        });
+      });
+    }
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    const cancel = byId("skill-discard-cancel");
     if (cancel) cancel.onclick = () => { state.skillPending = null; closeDialog(dialog); };
   }
 
@@ -513,24 +592,39 @@
     syncLanState();
   }
 
-  // 顶部偏左常驻展示本局进贡/还贡的牌
+  // 顶部偏左常驻展示本局进贡/还贡的牌(分头游/二游两行) + 最近技能效果
   function renderTributeBar() {
     const log = state.tributeLog;
-    if (!log || !log.length) { el["tribute-bar"].classList.add("view-hidden"); return; }
+    const slog = state.skillLog || [];
+    if ((!log || !log.length) && !slog.length) { el["tribute-bar"].classList.add("view-hidden"); return; }
     el["tribute-bar"].classList.remove("view-hidden");
-    let html = `<span class="t-label">进贡还贡</span>`;
-    log.forEach((item, i) => {
-      const card = item.card;
-      const suitCls = card.joker ? "t-joker" : (card.suit === "♥" || card.suit === "♦") ? "t-suit-red" : "t-suit-black";
-      const name = card.joker ? cardText(card) : cardText(card);
-      if (i > 0) html += `<span class="t-arrow">→</span>`;
-      if (item.type === "repay" || item.repay) {
-        html += `<span class="t-card ${suitCls}">还${escapeHtml(name)}</span>`;
-      } else {
-        html += `<span class="t-card ${suitCls}">贡${escapeHtml(name)}</span>`;
-      }
-    });
+    // 分两行: 头游(顶级 seat0) 一行, 二游(seat1) 一行
+    const rowOf = (seat) => {
+      const items = log.filter(it => it.to === seat);
+      if (!items.length) return "";
+      const cls = seat % 2 === state.localPlayer % 2 ? "ally" : "foe";
+      const chips = items.map(it => {
+        const card = it.card;
+        const suitCls = card.joker ? "t-joker" : (card.suit === "♥" || card.suit === "♦") ? "t-suit-red" : "t-suit-black";
+        const pre = it.type === "repay" || it.repay ? "还" : "贡";
+        return `<span class="t-card ${suitCls}">${pre}${escapeHtml(card.joker ? cardText(card) : cardText(card))}</span>`;
+      }).join("<span class='t-arrow'>→</span>");
+      return `<div class="tribute-row"><span class="t-owner ${cls}">${NAMES[seat]}</span>${chips}</div>`;
+    };
+    const headRow = rowOf(state.headSeat);
+    const secondRow = rowOf(state.secondSeat);
+    let html = headRow + secondRow;
+    if (slog.length) {
+      html += `<div class="skill-log">` + slog.slice(-4).map(s => `<div class="slog"><span class="sname">${escapeHtml(s.name)}</span> <span class="sres">${escapeHtml(s.res)}</span></div>`).join("") + `</div>`;
+    }
     el["tribute-bar"].innerHTML = html;
+  }
+
+  // 追加一条技能效果到 skillLog(最多4条)
+  function pushSkillLog(name, res) {
+    if (!state.skillLog) state.skillLog = [];
+    state.skillLog.push({ name, res });
+    if (state.skillLog.length > 4) state.skillLog.shift();
   }
 
   function selectedCards() {
@@ -674,7 +768,7 @@
     return taken;
   }
 
-  function applySkill(user, type, target) {
+  function applySkill(user, type, target, cardId) {
     const hand = state.hands[user];
     if (!hand) return false;
     if (type === "DrawTwo") {
@@ -683,6 +777,7 @@
       hand.push(...drawn);
       sortHand(hand);
       showToast(`${NAMES[user]} 使用了【无中生有】${drawn.length ? `，获得 ${drawn.length} 张牌！` : "，出牌堆为空无牌可抽！"}`, drawn.length ? "success" : "info");
+      pushSkillLog("无中生有", drawn.length ? `获得 ${drawn.length} 张` : "出牌堆为空");
     } else if (type === "Steal") {
       // 顺手牵羊：从目标偷 1 张随机牌
       if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
@@ -690,16 +785,19 @@
       hand.push(stolen);
       sortHand(hand);
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【顺手牵羊】！`, "success");
+      pushSkillLog("顺手牵羊", `偷 ${cardText(stolen)}`);
     } else if (type === "Discard") {
       // 过河拆桥：目标弃 1 张随机牌(直接移出本局, 不进废弃堆)
       if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
       takeRandomFromHand(target, 1);
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【过河拆桥】！`, "success");
+      pushSkillLog("过河拆桥", `弃掉 ${NAMES[target]} 1 张`);
     } else if (type === "Skip") {
       // 乐不思蜀：目标下回合跳过
       if (target === undefined) return false;
       state.skipNextTurn[target] = true;
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【乐不思蜀】，下回合被跳过！`, "success");
+      pushSkillLog("乐不思蜀", `${NAMES[target]} 下回合跳过`);
     } else if (type === "Harvest") {
       // 五谷丰登：所有未出完玩家各从出牌堆获得最多1张(出牌堆不足时随机分配给若干人)
       const active = [0, 1, 2, 3].filter(s => !state.finishOrder.includes(s) && state.hands[s] && state.hands[s].length > 0);
@@ -717,7 +815,8 @@
           }
         }
       }
-      showToast(`${NAMES[user]} 使用了【五谷丰登】${available ? "，未出完玩家各获得牌！" : "，出牌堆为空！"}`, available ? "success" : "info");
+      showToast(`${NAMES[user]} 使用了【五谷登丰】${available ? "，未出完玩家各获得牌！" : "，出牌堆为空！"}`, available ? "success" : "info");
+      pushSkillLog("五谷登丰", available ? "未出完玩家各+1" : "出牌堆为空");
     } else if (type === "Swap") {
       // 移花接木：与目标随机交换 1 张手牌
       if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
@@ -728,6 +827,7 @@
       sortHand(hand);
       sortHand(state.hands[target]);
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【移花接木】, 交换了 1 张牌！`, "success");
+      pushSkillLog("移花接木", `与 ${NAMES[target]} 交换1张`);
     } else if (type === "Peek") {
       // 明察秋毫：查看目标最多 3 张手牌(只有使用者本人可见)
       if (target === undefined || !state.hands[target]) return false;
@@ -736,33 +836,45 @@
       const peeked = [...targetHand].slice(0, count).map(c => cardText(c));
       state.peekResult = { target, cards: peeked };
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【明察秋毫】！`, "success");
-      // 弹窗展示(仅使用者), 2秒后自动关闭
+      pushSkillLog("明察秋毫", `查看 ${NAMES[target]} ${count} 张`);
+      // 弹窗展示(仅使用者), 点确定才关闭
       showPeekDialog(peeked, NAMES[target]);
     } else if (type === "Replace") {
-      // 偷梁换柱：弃自己 1 张(移出本局), 再从出牌堆抽 1 张
+      // 偷梁换柱：弃自己 1 张(移出本局), 再从出牌堆抽 1 张。弃牌可由玩家自选
       if (!hand.length || !state.discardPile.length) return false;
-      takeRandomFromHand(user, 1);
+      if (cardId) {
+        const idx = hand.findIndex(c => c.id === cardId);
+        if (idx < 0) return false;
+        hand.splice(idx, 1);
+      } else {
+        takeRandomFromHand(user, 1);
+      }
       const drawn = drawFromDiscard(1);
       if (drawn.length) { hand.push(drawn[0]); sortHand(hand); }
-      showToast(`${NAMES[user]} 使用了【偷梁换柱】！`, "success");
+      showToast(`${NAMES[user]} 使用了【偷梁换柱】！${drawn.length ? `，抽到 ${cardText(drawn[0])}` : "，出牌堆为空"}`);
+      pushSkillLog("偷梁换柱", drawn.length ? `抽到 ${cardText(drawn[0])}` : "出牌堆为空");
     } else if (type === "EmptyFort") {
       // 空城计：手牌≤6时, 本回合免疫其他玩家的目标型技能
       if (state.hands[user].length > 6) return false;
       state.emptyFortImmunity[user] = true;
       showToast(`${NAMES[user]} 使用了【空城计】, 本回合免疫目标型技能！`, "success");
+      pushSkillLog("空城计", "本回合免疫目标技能");
     } else if (type === "SoundEastWest") {
       // 声东击西：锁定目标技能, 逼其主动用技能解除(消耗1张)
       if (target === undefined) return false;
       if (state.distracted[target]) return false; // 已有该状态, 无效
       state.distracted[target] = true;
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【声东击西】！`, "success");
+      pushSkillLog("声东击西", `锁定 ${NAMES[target]}`);
+      // 施放反馈弹窗(和明察秋毫同样式)
+      showDistractDialog(`【声东击西】已锁定 ${NAMES[target]}！对方需用一张技能才能解除`, null, null);
     }
     return true;
   }
 
   function closeDialog(dialog) { if (dialog && dialog.open && typeof dialog.close === "function") dialog.close(); }
 
-  // 明察秋毫: 展示查看到的牌(仅使用者本人), 2秒后自动关闭
+  // 明察秋毫: 展示查看到的牌(仅使用者本人), 点确定才关闭
   function showPeekDialog(cards, targetName) {
     const dialog = byId("skill-peek-dialog");
     if (!dialog) return;
@@ -775,11 +887,15 @@
     const title = byId("skill-peek-title");
     if (title) title.textContent = `${targetName} 的手牌`;
     dialog.showModal?.();
-    setTimeout(() => { if (dialog.open) dialog.close(); }, 2000);
+    const confirm = byId("skill-peek-confirm");
+    if (confirm && !confirm._bound) {
+      confirm._bound = true;
+      confirm.addEventListener("click", () => dialog.close());
+    }
   }
 
   // 使用技能（人类/AI 都走这里）：消耗技能卡 + 刷新 + 同步
-  function useSkill(user, type, target, cardIdx) {
+  function useSkill(user, type, target, cardIdx, cardId) {
     if (!state.skillMode) return false;
     // 统计技能使用（用于调试/测试）
     window.__skillLog = window.__skillLog || [];
@@ -787,17 +903,25 @@
     if (window.__skillLog.length > 50) window.__skillLog.shift();
     // 非房主联机时，发 action 给房主执行
     if (state.lan && !state.lan.host) {
-      sendLanAction({ type: "action", action: "skill", skill: type, target, cardIdx });
+      sendLanAction({ type: "action", action: "skill", skill: type, target, cardIdx, cardId });
       return true;
     }
-    const ok = applySkill(user, type, target);
+    // 声东击西锁定: 被锁定玩家用技能会被"抵消"(不结算效果, 只用来解除锁定)
+    const wasDistracted = state.distracted[user];
+    const ok = wasDistracted ? true : applySkill(user, type, target, cardId);
     if (ok) {
       const mine = state.skillCards[user] || [];
       const idx = cardIdx !== undefined ? cardIdx : mine.findIndex(s => s.type === type);
       if (idx >= 0) mine.splice(idx, 1);
-      // 声东击西解除: 处于该状态的玩家用技能后立即解除
+      // 声东击西解除: 处于该状态的玩家用技能后立即解除(技能被抵消)
+      let skipBanner = false;
       if (state.distracted[user]) {
         state.distracted[user] = false;
+        pushSkillLog(SKILL_BUTTON_CN[type] || type, "被声东击西抵消(解除锁定)");
+        skipBanner = true;
+      } else if (wasDistracted) {
+        pushSkillLog(SKILL_BUTTON_CN[type] || type, "被声东击西抵消(解除锁定)");
+        skipBanner = true;
       }
       // 每回合最多用1张技能: 标记本回合已用技能
       state.usedSkillThisTurn = true;
@@ -808,14 +932,16 @@
         usedSkill.classList.add("skill-used");
         setTimeout(() => usedSkill.remove(), 450);
       }
-      const trickZone = document.querySelector(".trick-zone");
-      if (trickZone) {
-        const banner = document.createElement("div");
-        banner.className = "skill-banner";
-        banner.textContent = `${NAMES[user]} 使用【${SKILL_BUTTON_CN[type] || type}】`;
-        trickZone.appendChild(banner);
-        setTimeout(() => banner.classList.add("show"), 30);
-        setTimeout(() => { banner.classList.remove("show"); setTimeout(() => banner.remove(), 350); }, 700);
+      if (!skipBanner) {
+        const trickZone = document.querySelector(".trick-zone");
+        if (trickZone) {
+          const banner = document.createElement("div");
+          banner.className = "skill-banner";
+          banner.textContent = `${NAMES[user]} 使用【${SKILL_BUTTON_CN[type] || type}】`;
+          trickZone.appendChild(banner);
+          setTimeout(() => banner.classList.add("show"), 30);
+          setTimeout(() => { banner.classList.remove("show"); setTimeout(() => banner.remove(), 350); }, 700);
+        }
       }
       render();
       updateSelectionTip();
@@ -837,6 +963,8 @@
     const third = prevOrder[2];      // 三游 (seat)
     const last = prevOrder[3];       // 末游/下游 (seat)
     const sweep = (head % 2) === (second % 2); // 双下: 头游+二游同队(赢家包揽前二)
+    state.headSeat = head;
+    state.secondSeat = second;
 
     // ── 进贡方(输家方) & 抗贡判定 ──
     // 单下: 只有末游进贡; 双下: 三游+末游都进贡
@@ -865,7 +993,7 @@
       removeCard(last, tribute.id);
       state.hands[head].push(tribute);
       state.hands.forEach(sortHand);
-      state.tributeLog.push({ type: "tribute", card: tribute });
+      state.tributeLog.push({ type: "tribute", card: tribute, to: head });
       // 非抗贡: 下游(末游)先出
       state.dealer = last;
       // 还贡: 头游还一张≤10(逢人配除外)给末游(拿谁牌还谁)。玩家手动选, AI 自动选最小
@@ -875,7 +1003,7 @@
         showToast(`${NAMES[last]} 向 ${NAMES[head]} 进贡 ${cardText(tribute)}，请选择一张牌还贡`, "info");
       } else {
         const repay = pickRepay(head);
-        if (repay) { removeCard(head, repay.id); state.hands[last].push(repay); state.hands.forEach(sortHand); state.tributeLog.push({ type: "repay", card: repay }); }
+        if (repay) { removeCard(head, repay.id); state.hands[last].push(repay); state.hands.forEach(sortHand); state.tributeLog.push({ type: "repay", card: repay, to: head }); }
         showToast(`${NAMES[last]} 向 ${NAMES[head]} 进贡 ${cardText(tribute)}${repay ? `，${NAMES[head]} 还 ${cardText(repay)}` : ""}`, "info");
       }
       return;
@@ -896,16 +1024,16 @@
     state.hands[head].push(big);
     state.hands[second].push(small);
     state.hands.forEach(sortHand);
-    state.tributeLog.push({ type: "tribute", card: big });
-    state.tributeLog.push({ type: "tribute", card: small });
+    state.tributeLog.push({ type: "tribute", card: big, to: head });
+    state.tributeLog.push({ type: "tribute", card: small, to: second });
     // 双下出牌权: 非抗贡, 贡牌牌点较大者先出
     state.dealer = (rankValue(big.rank) >= rankValue(small.rank)) ? bigGiver : smallGiver;
     // 还贡配对: 拿谁牌还谁 — 头游还给大贡者, 二游还给小贡者。玩家手动选, AI 自动选最小
     let pending = [];
     if (head === state.localPlayer) pending.push({ receiver: head, giver: bigGiver, received: big });
-    else { const r = pickRepay(head); if (r) { removeCard(head, r.id); state.hands[bigGiver].push(r); state.tributeLog.push({ type: "repay", card: r }); } }
+    else { const r = pickRepay(head); if (r) { removeCard(head, r.id); state.hands[bigGiver].push(r); state.tributeLog.push({ type: "repay", card: r, to: head }); } }
     if (second === state.localPlayer) pending.push({ receiver: second, giver: smallGiver, received: small });
-    else { const r = pickRepay(second); if (r) { removeCard(second, r.id); state.hands[smallGiver].push(r); state.tributeLog.push({ type: "repay", card: r }); } }
+    else { const r = pickRepay(second); if (r) { removeCard(second, r.id); state.hands[smallGiver].push(r); state.tributeLog.push({ type: "repay", card: r, to: second }); } }
     state.hands.forEach(sortHand);
     // 若玩家需要还贡, 进入 repay 交互(支持逐个还)
     if (pending.length) {
@@ -1033,7 +1161,7 @@
     removeCard(state.localPlayer, card.id);
     state.hands[repay.giver].push(card);
     state.hands.forEach(sortHand);
-    state.tributeLog.push({ type: "repay", card });
+    state.tributeLog.push({ type: "repay", card, to: state.localPlayer });
     // 若还有下一个待还贡(双下两个赢家都是玩家)则继续, 否则结束还贡
     if (repay.list && repay.index + 1 < repay.list.length) {
       state.repay.index++;
@@ -1386,6 +1514,9 @@
       state.usedSkillThisTurn = false;
       state.repay = null;
       state.tributeLog = [];
+      state.skillLog = [];
+      state.headSeat = null;
+      state.secondSeat = null;
     } else {
       state.skillCards = [[], [], [], []];
       state.skipNextTurn = [false, false, false, false];
@@ -1395,6 +1526,9 @@
       state.usedSkillThisTurn = false;
       state.repay = null;
       state.tributeLog = [];
+      state.skillLog = [];
+      state.headSeat = null;
+      state.secondSeat = null;
     }
     // 上一局结束 → 下一局发牌后自动进贡/还贡/抗贡（需在 finishOrder 清空前读取）
     const prevOrder = state.finishOrder.length === 4 ? [...state.finishOrder] : null;
@@ -1691,7 +1825,7 @@
   function handleLanAction(player, payload) {
     if (!state.lan?.host || !state.lan.humanSeats.includes(player) || state.currentPlayer !== player || state.locked) return syncLanState();
     if (payload.action === "skill") {
-      useSkill(player, payload.skill, payload.target, payload.cardIdx);
+      useSkill(player, payload.skill, payload.target, payload.cardIdx, payload.cardId);
       syncLanState();
       return;
     }
@@ -1767,7 +1901,14 @@
       const ok = applySkill(state.localPlayer, type, target);
       return { ok, before, after: { hand: state.hands[state.localPlayer].length, pile: state.discardPile.length, tgt: target !== undefined ? state.hands[target].length : null } };
     },
-    __getState() { return { hand: state.hands[state.localPlayer].length, pile: state.discardPile.length, skillMode: state.skillMode }; },
+    __useSkill(type, target, cardId) {
+      // 走完整 useSkill 链路(含声东击西抵消)
+      const idx = (state.skillCards[state.localPlayer] || []).findIndex(s => s.type === type);
+      const ok = useSkill(state.localPlayer, type, target, idx, cardId);
+      render();
+      return { ok, distracted: state.distracted[state.localPlayer], skillLog: state.skillLog ? state.skillLog.slice(-4) : [] };
+    },
+    __getState() { return { hand: state.hands[state.localPlayer].length, pile: state.discardPile.length, skillMode: state.skillMode, skillLog: state.skillLog ? state.skillLog.slice(-4) : [] }; },
     __setDebug({ handCards, pileCards, distracted, emptyFortImmunity }) {
       if (handCards !== undefined) state.hands[state.localPlayer] = Array.from({length: handCards}, (_,i)=>({id:'t'+i, suit:'♠', rank:String(i), copy:2, joker:false}));
       if (pileCards !== undefined) state.discardPile = Array.from({length: pileCards}, (_,i)=>({id:'p'+i, suit:'♣', rank:String(i), copy:2, joker:false}));

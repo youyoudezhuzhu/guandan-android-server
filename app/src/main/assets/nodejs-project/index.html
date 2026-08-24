@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071b18" />
     <meta name="description" content="四人掼蛋单机与局域网对局" />
-    <title>掼蛋 · Hanazar Games v1.6.1</title>
+    <title>掼蛋 · Hanazar Games v1.6.2</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -88,7 +88,11 @@
           <div class="score-team"><span>对方</span><strong id="their-level">2</strong><small id="their-wins">0 胜</small></div>
         </aside>
 
-        <div class="tribute-bar view-hidden" id="tribute-bar" aria-label="进贡还贡牌"></div>
+        <div class="table-side-status view-hidden" id="tribute-bar" aria-label="进贡还贡牌">
+          <div class="tribute-row" id="tribute-row-head"></div>
+          <div class="tribute-row" id="tribute-row-second"></div>
+          <div class="skill-log" id="skill-log"></div>
+        </div>
 
         <section class="player player-top" id="player-2">
           <div class="avatar-wrap">
@@ -163,7 +167,7 @@
       </section>
 
       <footer class="game-footer">
-        <span><i class="online-dot"></i><span id="game-mode-label" data-i18n="singlePlayer">单机练习</span> <small class="version-tag">v1.6.1</small></span>
+        <span><i class="online-dot"></i><span id="game-mode-label" data-i18n="singlePlayer">单机练习</span> <small class="version-tag">v1.6.2</small></span>
         <span id="footer-tip">你的搭档坐在对面</span>
       </footer>
     </main>
@@ -178,11 +182,32 @@
       </div>
     </dialog>
 
+    <dialog id="skill-discard-dialog" class="modal modal-small" aria-labelledby="skill-discard-title">
+      <div class="modal-head">
+        <div><span>偷梁换柱</span><h2 id="skill-discard-title">选择要弃的牌</h2></div>
+      </div>
+      <div class="skill-discard-list" id="skill-discard-list"></div>
+      <div class="modal-actions">
+        <button type="button" class="game-button secondary" id="skill-discard-cancel">取消</button>
+      </div>
+    </dialog>
+
+    <dialog id="skill-distract-dialog" class="modal modal-small" aria-labelledby="skill-distract-title">
+      <div class="modal-head">
+        <div><span>声东击西</span><h2 id="skill-distract-title">音效提示</h2></div>
+      </div>
+      <div class="skill-distract-body" id="skill-distract-body"></div>
+      <div class="modal-actions">
+        <button type="button" class="game-button primary" id="skill-distract-confirm">确定</button>
+      </div>
+    </dialog>
+
     <dialog id="skill-peek-dialog" class="modal modal-small" aria-labelledby="skill-peek-title">
       <div class="modal-head">
         <div><span>明察秋毫</span><h2 id="skill-peek-title">查看手牌</h2></div>
       </div>
       <div class="skill-peek-list" id="skill-peek-list"></div>
+      <div class="modal-foot"><button class="game-button primary" id="skill-peek-confirm" type="button" data-i18n="confirm">确定</button></div>
     </dialog>
 
     <dialog id="rules-dialog" class="modal" aria-labelledby="rules-title">
@@ -245,7 +270,7 @@
           <label class="setting-toggle"><span><b data-i18n="haptics">震动反馈</b><small data-i18n="hapticsCopy">支持设备在炸弹与获胜时震动</small></span><input id="setting-haptics" type="checkbox"><i></i></label>
           <label class="range-setting"><span><b data-i18n="hapticStrength">震动强度</b><output class="range-value" for="setting-haptic-strength">100%</output></span><input id="setting-haptic-strength" type="range" min="25" max="200" step="25" value="100"></label>
         </section>
-        <section id="settings-panel-about" class="settings-section about-section" role="tabpanel" aria-labelledby="settings-tab-about" data-settings-panel="about" hidden><h3 data-i18n="about">关于</h3><p>Guandan Webgame v1.6.1</p>
+        <section id="settings-panel-about" class="settings-section about-section" role="tabpanel" aria-labelledby="settings-tab-about" data-settings-panel="about" hidden><h3 data-i18n="about">关于</h3><p>Guandan Webgame v1.6.2</p>
           <div class="about-links"><a href="https://github.com/Hanazar-Games/Guandan-Webgame" target="_blank" rel="noopener">GitHub Repository</a><a href="https://github.com/Hanazar-Games/Guandan-Webgame/issues" target="_blank" rel="noopener">Issues</a><a href="https://github.com/Hanazar-Games/Guandan-Webgame/discussions" target="_blank" rel="noopener">Discussions</a><a href="https://github.com/hzagaming" target="_blank" rel="noopener">HzaGaming</a><a href="https://hanazargames.com/" target="_blank" rel="noopener" data-i18n="officialHome">返回官网</a></div>
         </section>
       </div>
