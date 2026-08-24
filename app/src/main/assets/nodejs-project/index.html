@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071b18" />
     <meta name="description" content="四人掼蛋单机与局域网对局" />
-    <title>掼蛋 · Hanazar Games v1.6.6</title>
+    <title>掼蛋 · Hanazar Games v1.6.7</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -165,7 +165,7 @@
       </section>
 
       <footer class="game-footer">
-        <span><i class="online-dot"></i><span id="game-mode-label" data-i18n="singlePlayer">单机练习</span> <small class="version-tag">v1.6.6</small></span>
+        <span><i class="online-dot"></i><span id="game-mode-label" data-i18n="singlePlayer">单机练习</span> <small class="version-tag">v1.6.7</small></span>
         <span id="footer-tip">你的搭档坐在对面</span>
       </footer>
     </main>
@@ -268,7 +268,7 @@
           <label class="setting-toggle"><span><b data-i18n="haptics">震动反馈</b><small data-i18n="hapticsCopy">支持设备在炸弹与获胜时震动</small></span><input id="setting-haptics" type="checkbox"><i></i></label>
           <label class="range-setting"><span><b data-i18n="hapticStrength">震动强度</b><output class="range-value" for="setting-haptic-strength">100%</output></span><input id="setting-haptic-strength" type="range" min="25" max="200" step="25" value="100"></label>
         </section>
-        <section id="settings-panel-about" class="settings-section about-section" role="tabpanel" aria-labelledby="settings-tab-about" data-settings-panel="about" hidden><h3 data-i18n="about">关于</h3><p>Guandan Webgame v1.6.6</p>
+        <section id="settings-panel-about" class="settings-section about-section" role="tabpanel" aria-labelledby="settings-tab-about" data-settings-panel="about" hidden><h3 data-i18n="about">关于</h3><p>Guandan Webgame v1.6.7</p>
           <div class="about-links"><a href="https://github.com/Hanazar-Games/Guandan-Webgame" target="_blank" rel="noopener">GitHub Repository</a><a href="https://github.com/Hanazar-Games/Guandan-Webgame/issues" target="_blank" rel="noopener">Issues</a><a href="https://github.com/Hanazar-Games/Guandan-Webgame/discussions" target="_blank" rel="noopener">Discussions</a><a href="https://github.com/hzagaming" target="_blank" rel="noopener">HzaGaming</a><a href="https://hanazargames.com/" target="_blank" rel="noopener" data-i18n="officialHome">返回官网</a></div>
         </section>
       </div>
@@ -361,22 +361,15 @@
             if (enter) enter.call(el);
           }
         };
-        var tryEnter = function () {
-          if (fsEl()) return true;
-          var el = document.documentElement;
-          var enter = el.requestFullscreen || el.webkitRequestFullscreen;
-          try { if (enter) enter.call(el); } catch (e) {}
-        };
         btn.addEventListener("click", function (e) { e.stopPropagation(); toggle(); });
         var sync = function () { btn.classList.toggle("fs", !!fsEl()); };
         document.addEventListener("fullscreenchange", sync);
         document.addEventListener("webkitfullscreenchange", sync);
-        // 默认全屏：加载后尝试进入；若手势受限，则在首次触摸/点击兜底
-        try { tryEnter(); } catch (e) {}
-        var onceGesture = function () { tryEnter(); };
-        window.addEventListener("touchstart", onceGesture, { once: true, passive: true });
-        window.addEventListener("pointerdown", onceGesture, { once: true, passive: true });
-        window.addEventListener("keydown", onceGesture, { once: true });
+        // 全屏改为「仅手动按钮」触发 —— 自动全屏反复出问题:
+        // 1) on load tryEnter() 被浏览器手势策略忽略 → "打开即全屏"从未真正生效
+        // 2) 手势兜底(touchstart/pointerdown/keydown)里 keydown 会让改名框按删除键
+        //    触发 requestFullscreen → 删字瞬间进全屏+布局重排→回首页(2026-08 实测 bug)
+        // 移除所有自动全屏, 只保留 #fullscreen-btn 手动切换。改名/输入不再被全屏干扰。
       })();
     </script>
     <script src="script.js"></script>
