@@ -167,6 +167,13 @@ button:focus-visible, .card:focus-visible { outline: 3px solid var(--gold-bright
 
 .match-score { position:absolute; z-index:3; top:22px; right:clamp(24px,4vw,62px); display:flex; align-items:center; gap:13px; padding:8px 13px; border:1px solid rgba(255,255,255,.1); border-radius:9px; background:rgba(2,29,25,.42); backdrop-filter:blur(5px); }
 .match-score > i { width:1px; height:29px; background:rgba(255,255,255,.12); }
+.tribute-bar { position:absolute; z-index:3; top:8px; left:clamp(12px,3vw,30px); display:flex; align-items:center; gap:4px; padding:4px 8px; border:1px solid rgba(255,255,255,.1); border-radius:7px; background:rgba(2,29,25,.4); backdrop-filter:blur(4px); font-size:11px; color:#e5d9b6; }
+.tribute-bar .t-label { margin-right:3px; font-size:10px; color:rgba(255,255,255,.55); white-space:nowrap; }
+.tribute-bar .t-card { display:inline-flex; align-items:center; gap:1px; padding:1px 5px; border-radius:4px; background:rgba(0,0,0,.25); font-weight:600; font-size:11px; white-space:nowrap; }
+.tribute-bar .t-card .t-suit-red { color:#e2554d; }
+.tribute-bar .t-card .t-suit-black { color:#dfe6ee; }
+.tribute-bar .t-card .t-joker { color:var(--gold-bright); }
+.tribute-bar .t-arrow { color:rgba(255,255,255,.35); font-size:10px; }
 .score-team { display:grid; grid-template-columns:auto auto; align-items:center; gap:0 7px; color:var(--muted); font-size:9px; }
 .score-team strong { grid-row:1 / 3; grid-column:2; color:#e4ddd0; font-family:Georgia,serif; font-size:23px; }
 .score-team small { color:rgba(255,255,255,.58); font-size:9px; }

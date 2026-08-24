@@ -125,7 +125,8 @@
     usedSkillThisTurn: false,       // 当前玩家本回合是否已用过技能(每回合最多1张)
     peekResult: null,               // 明察秋毫查看结果(仅使用者本人用)
     // ── 进贡/还贡交互 ──
-    repay: null                     // 还贡等待: { giver, receiver, received } (进贡后待还贡, 手动选牌)
+    repay: null,                    // 还贡等待: { giver, receiver, received } (进贡后待还贡, 手动选牌)
+    tributeLog: []                  // 本局进贡/还贡记录 [{type, from, to, card}] 供顶部常驻展示
   };
 
   let sfxVolume = 1;
@@ -150,7 +151,7 @@
       "selection-tip", "player-hand", "pass-button", "hint-button", "play-button", "repay-button", "new-game-button",
       "help-button", "sound-button", "music-button", "rules-dialog", "close-rules", "confirm-rules", "result-dialog",
       "restart-dialog", "cancel-restart", "confirm-restart", "result-title", "result-copy", "ranking", "again-button", "toast", "footer-tip",
-      "our-level", "their-level", "our-wins", "their-wins"
+      "our-level", "their-level", "our-wins", "their-wins", "tribute-bar"
     ].forEach(id => el[id] = byId(id));
   }
 
@@ -507,8 +508,29 @@
     el["their-level"].textContent = state.teamLevels[1 - ourTeam];
     el["our-wins"].textContent = `${state.teamWins[ourTeam]} 胜`;
     el["their-wins"].textContent = `${state.teamWins[1 - ourTeam]} 胜`;
+    renderTributeBar();
     renderSkills();
     syncLanState();
+  }
+
+  // 顶部偏左常驻展示本局进贡/还贡的牌
+  function renderTributeBar() {
+    const log = state.tributeLog;
+    if (!log || !log.length) { el["tribute-bar"].classList.add("view-hidden"); return; }
+    el["tribute-bar"].classList.remove("view-hidden");
+    let html = `<span class="t-label">进贡还贡</span>`;
+    log.forEach((item, i) => {
+      const card = item.card;
+      const suitCls = card.joker ? "t-joker" : (card.suit === "♥" || card.suit === "♦") ? "t-suit-red" : "t-suit-black";
+      const name = card.joker ? cardText(card) : cardText(card);
+      if (i > 0) html += `<span class="t-arrow">→</span>`;
+      if (item.type === "repay" || item.repay) {
+        html += `<span class="t-card ${suitCls}">还${escapeHtml(name)}</span>`;
+      } else {
+        html += `<span class="t-card ${suitCls}">贡${escapeHtml(name)}</span>`;
+      }
+    });
+    el["tribute-bar"].innerHTML = html;
   }
 
   function selectedCards() {
@@ -843,6 +865,7 @@
       removeCard(last, tribute.id);
       state.hands[head].push(tribute);
       state.hands.forEach(sortHand);
+      state.tributeLog.push({ type: "tribute", card: tribute });
       // 非抗贡: 下游(末游)先出
       state.dealer = last;
       // 还贡: 头游还一张≤10(逢人配除外)给末游(拿谁牌还谁)。玩家手动选, AI 自动选最小
@@ -852,7 +875,7 @@
         showToast(`${NAMES[last]} 向 ${NAMES[head]} 进贡 ${cardText(tribute)}，请选择一张牌还贡`, "info");
       } else {
         const repay = pickRepay(head);
-        if (repay) { removeCard(head, repay.id); state.hands[last].push(repay); state.hands.forEach(sortHand); }
+        if (repay) { removeCard(head, repay.id); state.hands[last].push(repay); state.hands.forEach(sortHand); state.tributeLog.push({ type: "repay", card: repay }); }
         showToast(`${NAMES[last]} 向 ${NAMES[head]} 进贡 ${cardText(tribute)}${repay ? `，${NAMES[head]} 还 ${cardText(repay)}` : ""}`, "info");
       }
       return;
@@ -873,14 +896,16 @@
     state.hands[head].push(big);
     state.hands[second].push(small);
     state.hands.forEach(sortHand);
+    state.tributeLog.push({ type: "tribute", card: big });
+    state.tributeLog.push({ type: "tribute", card: small });
     // 双下出牌权: 非抗贡, 贡牌牌点较大者先出
     state.dealer = (rankValue(big.rank) >= rankValue(small.rank)) ? bigGiver : smallGiver;
     // 还贡配对: 拿谁牌还谁 — 头游还给大贡者, 二游还给小贡者。玩家手动选, AI 自动选最小
     let pending = [];
     if (head === state.localPlayer) pending.push({ receiver: head, giver: bigGiver, received: big });
-    else { const r = pickRepay(head); if (r) { removeCard(head, r.id); state.hands[bigGiver].push(r); } }
+    else { const r = pickRepay(head); if (r) { removeCard(head, r.id); state.hands[bigGiver].push(r); state.tributeLog.push({ type: "repay", card: r }); } }
     if (second === state.localPlayer) pending.push({ receiver: second, giver: smallGiver, received: small });
-    else { const r = pickRepay(second); if (r) { removeCard(second, r.id); state.hands[smallGiver].push(r); } }
+    else { const r = pickRepay(second); if (r) { removeCard(second, r.id); state.hands[smallGiver].push(r); state.tributeLog.push({ type: "repay", card: r }); } }
     state.hands.forEach(sortHand);
     // 若玩家需要还贡, 进入 repay 交互(支持逐个还)
     if (pending.length) {
@@ -1008,6 +1033,7 @@
     removeCard(state.localPlayer, card.id);
     state.hands[repay.giver].push(card);
     state.hands.forEach(sortHand);
+    state.tributeLog.push({ type: "repay", card });
     // 若还有下一个待还贡(双下两个赢家都是玩家)则继续, 否则结束还贡
     if (repay.list && repay.index + 1 < repay.list.length) {
       state.repay.index++;
@@ -1358,6 +1384,8 @@
       state.distracted = [false, false, false, false];
       state.emptyFortImmunity = [false, false, false, false];
       state.usedSkillThisTurn = false;
+      state.repay = null;
+      state.tributeLog = [];
     } else {
       state.skillCards = [[], [], [], []];
       state.skipNextTurn = [false, false, false, false];
@@ -1365,6 +1393,8 @@
       state.distracted = [false, false, false, false];
       state.emptyFortImmunity = [false, false, false, false];
       state.usedSkillThisTurn = false;
+      state.repay = null;
+      state.tributeLog = [];
     }
     // 上一局结束 → 下一局发牌后自动进贡/还贡/抗贡（需在 finishOrder 清空前读取）
     const prevOrder = state.finishOrder.length === 4 ? [...state.finishOrder] : null;
@@ -1761,6 +1791,7 @@
       if (order !== undefined) state.finishOrder = [...order];
       const before = state.hands.map(h => h.length);
       performTribute([...state.finishOrder]);
+      render();
       return {
         round: state.round, dealer: state.dealer,
         handBefore: before, handAfter: state.hands.map(h => h.length),
