@@ -1,109 +1,183 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:background="#F5F5F0">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="掼蛋 · 局域网服务器"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:textColor="#1B5E20" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="同一 WiFi 下的设备访问下方地址即可联机对战"
-        android:textSize="13sp"
-        android:textColor="#666666" />
-
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:text="○ 服务器启动中…"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="#E65100" />
-
-    <TextView
-        android:id="@+id/tvAddress"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="正在获取局域网地址…"
-        android:textSize="20sp"
-        android:textColor="#1B5E20"
-        android:textStyle="bold"
-        android:fontFamily="monospace" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:text="端口 4173"
-        android:textSize="13sp"
-        android:textColor="#666666" />
-
-    <ImageView
-        android:id="@+id/ivQr"
-        android:layout_width="220dp"
-        android:layout_height="220dp"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="16dp"
-        android:background="#FFFFFF"
-        android:padding="8dp"
-        android:contentDescription="局域网访问二维码" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="6dp"
-        android:text="↑ 其他设备扫码直接进入游戏"
-        android:textSize="12sp"
-        android:textColor="#999999" />
+    android:background="@color/md_background"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:orientation="horizontal">
+        android:orientation="vertical"
+        android:padding="24dp">
 
-        <Button
-            android:id="@+id/btnOpen"
-            android:layout_width="0dp"
+        <!-- 标题区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:text="本机打开游戏"
-            android:textSize="15sp"
-            android:backgroundTint="#1B5E20" />
+            android:orientation="vertical"
+            android:layout_marginTop="24dp">
 
-        <Button
-            android:id="@+id/btnCopy"
-            android:layout_width="0dp"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/app_name"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
+                android:textColor="@color/md_on_surface"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="同一 WiFi 下的设备访问下方地址即可联机对战"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                android:textColor="@color/md_on_surface_variant" />
+        </LinearLayout>
+
+        <!-- 主面板卡片 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:text="复制地址"
-            android:textSize="15sp"
-            android:backgroundTint="#2E7D32" />
+            android:layout_marginTop="28dp"
+            app:cardBackgroundColor="@color/md_surface"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:strokeColor="@color/md_outline_variant"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <!-- 状态指示 -->
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/tvStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="○ 服务器启动中…"
+                    app:chipBackgroundColor="@color/md_secondary_container"
+                    app:chipStrokeWidth="0dp"
+                    app:chipCornerRadius="16dp"
+                    app:chipMinHeight="40dp"
+                    android:textColor="@color/md_on_secondary_container"
+                    android:textStyle="bold" />
+
+                <!-- 地址卡 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    app:cardBackgroundColor="@color/md_surface_container"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="局域网地址"
+                            android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                            android:textColor="@color/md_on_surface_variant" />
+
+                        <TextView
+                            android:id="@+id/tvAddress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="正在获取局域网地址…"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+                            android:textColor="@color/md_primary"
+                            android:fontFamily="monospace" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="端口 4173"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/md_on_surface_variant" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 二维码 -->
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/ivQr"
+                    android:layout_width="200dp"
+                    android:layout_height="200dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="20dp"
+                    android:background="@color/md_surface_container"
+                    android:padding="10dp"
+                    android:contentDescription="局域网访问二维码"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.Guandan.Small" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="6dp"
+                    android:text="↑ 其他设备扫码直接进入游戏"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="@color/md_on_surface_variant" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 按钮区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpen"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="@string/open_game"
+                android:textSize="15sp"
+                app:cornerRadius="16dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCopy"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="@string/copy_address"
+                android:textSize="15sp"
+                style="@style/Widget.Material3.Button.TonalButton"
+                app:cornerRadius="16dp" />
+        </LinearLayout>
+
+        <!-- 玩法提示 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            app:cardBackgroundColor="@color/md_surface_variant"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                android:text="玩法提示：\n1. 打开本 App 即自动成为服务器\n2. 其他玩家用浏览器/扫码打开上方地址\n3. 一人创建房间，其余输 6 位房间码加入\n4. 空位由 AI 补齐，支持 2–4 名真人"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                android:textColor="@color/md_on_surface_variant"
+                android:lineSpacingExtra="4dp" />
+        </com.google.android.material.card.MaterialCardView>
+
     </LinearLayout>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="玩法提示：\n1. 打开本 App 即自动成为服务器\n2. 其他玩家用浏览器/扫码打开上方地址\n3. 一人创建房间，其余输 6 位房间码加入\n4. 空位由 AI 补齐，支持 2–4 名真人"
-        android:textSize="13sp"
-        android:textColor="#555555"
-        android:lineSpacingExtra="4dp" />
-
-</LinearLayout>
+</ScrollView>

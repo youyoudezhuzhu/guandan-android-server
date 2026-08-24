@@ -1,4 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#FDFDFB</color>
+
+    <!-- MD3 色板 -->
+    <color name="md_primary">#3B6B5B</color>
+    <color name="md_on_primary">#FFFFFF</color>
+    <color name="md_primary_container">#B8E8D3</color>
+    <color name="md_on_primary_container">#032116</color>
+    <color name="md_secondary">#4C6358</color>
+    <color name="md_on_secondary">#FFFFFF</color>
+    <color name="md_secondary_container">#CDE8DA</color>
+    <color name="md_on_secondary_container">#0A2015</color>
+    <color name="md_tertiary">#44656B</color>
+    <color name="md_on_tertiary">#FFFFFF</color>
+    <color name="md_tertiary_container">#C7E8EE</color>
+    <color name="md_on_tertiary_container">#001F24</color>
+    <color name="md_surface">#F6FBF7</color>
+    <color name="md_on_surface">#171D1A</color>
+    <color name="md_surface_variant">#DDE5DF</color>
+    <color name="md_on_surface_variant">#414944</color>
+    <color name="md_outline">#717973</color>
+    <color name="md_outline_variant">#C1C9C3</color>
+    <color name="md_error">#BA1A1A</color>
+    <color name="md_surface_container">#ECF2EC</color>
+    <color name="md_surface_container_high">#E6EDE7</color>
+    <color name="md_background">#F6FBF7</color>
 </resources>

@@ -2,3 +2,8 @@
 plugins {
     id 'com.android.application' version '9.3.1' apply false
 }
+
+// Material Components (MD3) 版本管理
+ext {
+    materialVersion = '1.12.0'
+}

@@ -1,8 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.GuandanServer" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:statusBarColor">#1B5E20</item>
-        <item name="android:navigationBarColor">#1B5E20</item>
-        <item name="android:windowLightStatusBar">false</item>
+    <!-- MD3 主题：Material3 DayNight，无 ActionBar，支持动态取色 -->
+    <style name="Theme.GuandanServer" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- MD3 主色板（掼蛋绿色系，暗色基底） -->
+        <item name="colorPrimary">#3B6B5B</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#B8E8D3</item>
+        <item name="colorOnPrimaryContainer">#032116</item>
+        <item name="colorSecondary">#4C6358</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSecondaryContainer">#CDE8DA</item>
+        <item name="colorOnSecondaryContainer">#0A2015</item>
+        <item name="colorTertiary">#44656B</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorTertiaryContainer">#C7E8EE</item>
+        <item name="colorOnTertiaryContainer">#001F24</item>
+        <item name="colorSurface">#F6FBF7</item>
+        <item name="colorOnSurface">#171D1A</item>
+        <item name="colorSurfaceVariant">#DDE5DF</item>
+        <item name="colorOnSurfaceVariant">#414944</item>
+        <item name="colorOutline">#717973</item>
+        <item name="colorOutlineVariant">#C1C9C3</item>
+
+        <!-- MD3 圆角形态（Material Shape） -->
+        <item name="shapeAppearanceCornerLarge">@style/ShapeAppearance.Guandan.Large</item>
+        <item name="shapeAppearanceCornerMedium">@style/ShapeAppearance.Guandan.Medium</item>
+        <item name="shapeAppearanceCornerSmall">@style/ShapeAppearance.Guandan.Small</item>
+
+        <!-- 状态栏/导航栏 -->
+        <item name="android:statusBarColor">@color/md_surface</item>
+        <item name="android:navigationBarColor">@color/md_surface</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+
+    <!-- MD3 圆角形态 -->
+    <style name="ShapeAppearance.Guandan.Large" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+    <style name="ShapeAppearance.Guandan.Medium" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+    <style name="ShapeAppearance.Guandan.Small" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
     </style>
 </resources>

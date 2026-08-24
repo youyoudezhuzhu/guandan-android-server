@@ -1,7 +1,6 @@
 package com.hanazar.guandanserver;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -12,11 +11,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.chip.Chip;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
@@ -28,17 +28,25 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
-public class MainActivity extends Activity {
+public class MainActivity extends AppCompatActivity {
 
-    private TextView statusView;
+    private Chip statusView;
     private TextView addressView;
-    private ImageView qrView;
-    private Button openButton;
-    private Button copyButton;
+    private com.google.android.material.imageview.ShapeableImageView qrView;
+    private com.google.android.material.button.MaterialButton openButton;
+    private com.google.android.material.button.MaterialButton copyButton;
     private final Handler handler = new Handler(Looper.getMainLooper());
-
     private static final int REQUEST_NOTIFY = 1001;
 
     @Override
@@ -85,7 +93,7 @@ public class MainActivity extends Activity {
         pollServerStatus();
     }
 
-    /** 轮询本机 node 服务的 /api/info，直到服务器就绪并拿到局域网地址 */
+    /** 轮询本机 node 服务的 /api/info，直到服务器就绪并拿到全部局域网地址 */
     private void pollServerStatus() {
         new Thread(() -> {
             for (int attempt = 0; attempt < 60; attempt++) {
@@ -104,8 +112,8 @@ public class MainActivity extends Activity {
 
                         JSONObject obj = new JSONObject(sb.toString());
                         JSONArray addresses = obj.getJSONArray("addresses");
-                        String lanIp = pickLanAddress(addresses);
-                        runOnUiThread(() -> onServerReady(lanIp));
+                        List<String> allIps = jsonArrayToList(addresses);
+                        runOnUiThread(() -> onServerReady(allIps));
                         return;
                     }
                     conn.disconnect();
@@ -122,12 +130,18 @@ public class MainActivity extends Activity {
         }).start();
     }
 
-    private String pickLanAddress(JSONArray addresses) {
-        // 优先选私有网段的 IPv4（192.168 / 10. / 172.16-31.）
+    private List<String> jsonArrayToList(JSONArray arr) {
+        List<String> list = new ArrayList<>();
+        for (int i = 0; i < arr.length(); i++) list.add(arr.optString(i));
+        return list;
+    }
+
+    /** 从全部可用地址中挑一个最优的二维码地址（优先私有网段 IPv4） */
+    private String pickLanAddress(List<String> addresses) {
         String fallback = null;
-        for (int i = 0; i < addresses.length(); i++) {
-            String ip = addresses.optString(i);
-            if (ip.startsWith("192.168.") || ip.startsWith("10.") || ip.matches("172\\.(1[6-9]|2[0-9]|3[01])\\..*")) {
+        for (String ip : addresses) {
+            if (ip.startsWith("192.168.") || ip.startsWith("10.")
+                    || ip.matches("172\\.(1[6-9]|2[0-9]|3[01])\\..*")) {
                 return ip;
             }
             if (fallback == null) fallback = ip;
@@ -135,13 +149,44 @@ public class MainActivity extends Activity {
         return fallback != null ? fallback : "127.0.0.1";
     }
 
-    private void onServerReady(String ip) {
-        String url = "http://" + ip + ":" + NodeService.PORT;
+    private void onServerReady(List<String> nodeIps) {
+        // 合并 node 枚举 + Java 侧 NetworkInterface 枚举(LocalSend同款), 去重
+        Set<String> merged = new LinkedHashSet<>(nodeIps);
+        merged.addAll(enumerateLocalIps());
+        List<String> allIps = new ArrayList<>(merged);
+
+        String mainUrl = "http://" + pickLanAddress(allIps) + ":" + NodeService.PORT;
+
+        // 全部可用地址多行显示
+        StringBuilder sb = new StringBuilder();
+        for (String ip : allIps) {
+            sb.append("http://").append(ip).append(":").append(NodeService.PORT).append("\n");
+        }
         statusView.setText("● 服务器运行中");
-        addressView.setText(url);
-        Bitmap qr = generateQr(url, 480);
+        addressView.setText(sb.toString().trim());
+        Bitmap qr = generateQr(mainUrl, 480);
         if (qr != null) qrView.setImageBitmap(qr);
-        NodeService.updateNotification(this, "服务器运行中 · " + url);
+        NodeService.updateNotification(this, "服务器运行中 · " + mainUrl);
+    }
+
+    /** LocalSend 同款: 用 Android NetworkInterface 枚举所有接口的 IPv4(含 WiFi/热点/以太网/蓝牙/USB 共享等) */
+    private List<String> enumerateLocalIps() {
+        Set<String> ips = new LinkedHashSet<>();
+        try {
+            Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
+            if (nis == null) return new ArrayList<>(ips);
+            for (NetworkInterface ni : Collections.list(nis)) {
+                if (!ni.isUp() || ni.isLoopback()) continue;  // 只关注启用网卡
+                Enumeration<InetAddress> addrs = ni.getInetAddresses();
+                for (InetAddress addr : Collections.list(addrs)) {
+                    if (addr instanceof Inet4Address && !addr.isLinkLocalAddress() && !addr.isLoopbackAddress()) {
+                        ips.add(addr.getHostAddress());
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return new ArrayList<>(ips);
     }
 
     private Bitmap generateQr(String text, int size) {
@@ -150,7 +195,7 @@ public class MainActivity extends Activity {
             Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.RGB_565);
             for (int x = 0; x < size; x++) {
                 for (int y = 0; y < size; y++) {
-                    bmp.setPixel(x, y, matrix.get(x, y) ? 0xFF1B5E20 : 0xFFFFFFFF);
+                    bmp.setPixel(x, y, matrix.get(x, y) ? 0xFF3B6B5B : 0xFFFFFFFF);
                 }
             }
             return bmp;

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">掼蛋服务器</string>
+    <string name="app_name">掼蛋 · 局域网服务器</string>
+    <string name="open_game">本机打开游戏</string>
+    <string name="copy_address">复制地址</string>
 </resources>
