@@ -367,6 +367,8 @@
   });
   $("lan-button").addEventListener("click", () => open($("lan-dialog")));
   $("close-lan").addEventListener("click", () => close($("lan-dialog")));
+  // 联机对话框: 拦截返回键(Android back/Esc), 防止改名时误关(别的dialog都拦了, 就lan漏了)
+  $("lan-dialog").addEventListener("cancel", event => { event.preventDefault(); });
   $("create-room").addEventListener("click", () => roomAction("create"));
   $("join-room").addEventListener("click", () => roomAction("join"));
   $("copy-room-code").addEventListener("click", async () => {

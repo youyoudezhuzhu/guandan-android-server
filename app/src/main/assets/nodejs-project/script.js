@@ -1779,6 +1779,7 @@
       lastAdvance: state.lastAdvance, names: NAMES,
       skillMode: state.skillMode, skillCards: state.skillCards, skipNextTurn: state.skipNextTurn,
       discardPile: state.discardPile, distracted: state.distracted, emptyFortImmunity: state.emptyFortImmunity,
+      tributeLog: state.tributeLog, skillLog: state.skillLog, headSeat: state.headSeat, secondSeat: state.secondSeat,
       result: {
         title: el["result-title"].textContent, copy: el["result-copy"].textContent,
         again: el["again-button"].textContent, resetMatch: el["again-button"].dataset.resetMatch
@@ -1823,7 +1824,7 @@
     const previousHistorySize = state.history.length;
     const wasLocked = state.locked;
     if (snapshot.round !== state.round || (wasLocked && !snapshot.locked)) state.animateDeal = true;
-    const fields = ["level", "round", "hands", "currentPlayer", "currentPlay", "lastPlayer", "passCount", "finishOrder", "locked", "history", "teamLevels", "teamWins", "dealer", "lastAdvance", "skillMode", "skillCards", "skipNextTurn", "discardPile", "distracted", "emptyFortImmunity"];
+    const fields = ["level", "round", "hands", "currentPlayer", "currentPlay", "lastPlayer", "passCount", "finishOrder", "locked", "history", "teamLevels", "teamWins", "dealer", "lastAdvance", "skillMode", "skillCards", "skipNextTurn", "discardPile", "distracted", "emptyFortImmunity", "tributeLog", "skillLog", "headSeat", "secondSeat"];
     fields.forEach(field => { state[field] = snapshot[field]; });
     NAMES = [...snapshot.names];
     state.selected.clear();
