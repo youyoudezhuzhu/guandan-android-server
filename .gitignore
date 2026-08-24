@@ -17,3 +17,4 @@ app/libnode/include/**
 # 其他
 *.log
 .DS_Store
+*.apk
