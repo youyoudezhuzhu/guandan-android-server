@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071b18" />
     <meta name="description" content="四人掼蛋单机与局域网对局" />
-    <title>掼蛋 · Hanazar Games v1.5.0</title>
+    <title>掼蛋 · Hanazar Games v1.6.0</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -147,6 +147,7 @@
           <div class="action-row">
             <div class="action-buttons">
               <button class="game-button secondary" id="pass-button" type="button" aria-keyshortcuts="Space" title="不出（空格）"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8 12h8"/></svg><span data-i18n="pass">不出</span></button>
+              <button class="game-button primary repay-button view-hidden" id="repay-button" type="button"><span data-i18n="repay">还贡</span></button>
               <button class="game-button secondary" id="hint-button" type="button" aria-keyshortcuts="H" title="提示（H）"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17h6M10 20h4"/><path d="M8.5 14.5A6 6 0 1 1 15.5 14.5c-.8.6-1.1 1.2-1.1 2.5h-4.8c0-1.3-.3-1.9-1.1-2.5Z"/></svg><span data-i18n="hint">提示</span></button>
               <button class="game-button primary" id="play-button" type="button" aria-keyshortcuts="Enter" title="出牌（Enter）"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M7 10l5-5 5 5"/></svg><span data-i18n="play">出牌</span></button>
             </div>
@@ -160,7 +161,7 @@
       </section>
 
       <footer class="game-footer">
-        <span><i class="online-dot"></i><span id="game-mode-label" data-i18n="singlePlayer">单机练习</span> <small class="version-tag">v1.5.0</small></span>
+        <span><i class="online-dot"></i><span id="game-mode-label" data-i18n="singlePlayer">单机练习</span> <small class="version-tag">v1.6.0</small></span>
         <span id="footer-tip">你的搭档坐在对面</span>
       </footer>
     </main>
@@ -242,7 +243,7 @@
           <label class="setting-toggle"><span><b data-i18n="haptics">震动反馈</b><small data-i18n="hapticsCopy">支持设备在炸弹与获胜时震动</small></span><input id="setting-haptics" type="checkbox"><i></i></label>
           <label class="range-setting"><span><b data-i18n="hapticStrength">震动强度</b><output class="range-value" for="setting-haptic-strength">100%</output></span><input id="setting-haptic-strength" type="range" min="25" max="200" step="25" value="100"></label>
         </section>
-        <section id="settings-panel-about" class="settings-section about-section" role="tabpanel" aria-labelledby="settings-tab-about" data-settings-panel="about" hidden><h3 data-i18n="about">关于</h3><p>Guandan Webgame v1.5.0</p>
+        <section id="settings-panel-about" class="settings-section about-section" role="tabpanel" aria-labelledby="settings-tab-about" data-settings-panel="about" hidden><h3 data-i18n="about">关于</h3><p>Guandan Webgame v1.6.0</p>
           <div class="about-links"><a href="https://github.com/Hanazar-Games/Guandan-Webgame" target="_blank" rel="noopener">GitHub Repository</a><a href="https://github.com/Hanazar-Games/Guandan-Webgame/issues" target="_blank" rel="noopener">Issues</a><a href="https://github.com/Hanazar-Games/Guandan-Webgame/discussions" target="_blank" rel="noopener">Discussions</a><a href="https://github.com/hzagaming" target="_blank" rel="noopener">HzaGaming</a><a href="https://hanazargames.com/" target="_blank" rel="noopener" data-i18n="officialHome">返回官网</a></div>
         </section>
       </div>
@@ -251,15 +252,17 @@
 
     <dialog id="tutorial-dialog" class="modal tutorial-modal" aria-labelledby="tutorial-title">
       <div class="modal-head"><div><span data-i18n="tutorialKicker">五步入门</span><h2 id="tutorial-title" data-i18n="tutorial">新手教程</h2></div><button type="button" id="close-tutorial" aria-label="关闭教程">×</button></div>
-      <div class="tutorial-progress"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="tutorial-progress"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="tutorial-slides">
         <article class="tutorial-slide active" aria-hidden="false"><b>01</b><div class="tutorial-visual teams-visual"><span>你</span><span>队友</span><span>对手</span><span>对手</span></div><h3 data-i18n="tutorial1Title">认清你的队伍</h3><p data-i18n="tutorial1Copy">你与对面玩家是一队。配合队友，比单纯压过每一手牌更重要。</p></article>
         <article class="tutorial-slide" aria-hidden="true"><b>02</b><div class="tutorial-visual card-visual">♥ 2</div><h3 data-i18n="tutorial2Title">认识逢人配</h3><p data-i18n="tutorial2Copy">红桃级牌可以替代除大小王以外的任意牌，是组合强牌的关键。</p></article>
         <article class="tutorial-slide" aria-hidden="true"><b>03</b><div class="tutorial-visual combo-visual">7 8 9 10 J</div><h3 data-i18n="tutorial3Title">同型才能压制</h3><p data-i18n="tutorial3Copy">普通牌需要牌型、张数一致且点数更大；炸弹可以打破这一限制。</p></article>
         <article class="tutorial-slide" aria-hidden="true"><b>04</b><div class="tutorial-visual action-visual">提示 → 选择 → 出牌</div><h3 data-i18n="tutorial4Title">完成一次出牌</h3><p data-i18n="tutorial4Copy">点击手牌进行选择。拿不准时使用提示，没有合适的牌就选择不出。</p></article>
-        <article class="tutorial-slide" aria-hidden="true"><b>05</b><div class="tutorial-visual win-visual">冠</div><h3 data-i18n="tutorial5Title">与队友一起升级</h3><p data-i18n="tutorial5Copy">头游与队友名次决定升级幅度。率先打过 A 即可完成比赛。</p></article>
+        <article class="tutorial-slide" aria-hidden="true"><b>05</b><div class="tutorial-visual skill-visual">技</div><h3 data-i18n="tutorial5Title">技能模式</h3><p data-i18n="tutorial5Copy">技能模式每人发技能卡，可打出无中生有、顺手牵羊、乐不思蜀等来扭转局势。</p></article>
+        <article class="tutorial-slide" aria-hidden="true"><b>06</b><div class="tutorial-visual tribute-visual">进贡</div><h3 data-i18n="tutorial6Title">进贡与抗贡</h3><p data-i18n="tutorial6Copy">从第二副牌起，下游向上游进贡最大牌；双下时两家都进贡。抓两张大王可抗贡。</p></article>
+        <article class="tutorial-slide" aria-hidden="true"><b>07</b><div class="tutorial-visual win-visual">冠</div><h3 data-i18n="tutorial7Title">与队友一起升级</h3><p data-i18n="tutorial7Copy">头游与队友名次决定升级幅度。率先打过 A 即可完成比赛。</p></article>
       </div>
-      <div class="tutorial-actions"><button class="game-button secondary" id="tutorial-prev" type="button" data-i18n="previous">上一步</button><span id="tutorial-count">1 / 5</span><button class="game-button primary" id="tutorial-next" type="button" data-i18n="next">下一步</button></div>
+      <div class="tutorial-actions"><button class="game-button secondary" id="tutorial-prev" type="button" data-i18n="previous">上一步</button><span id="tutorial-count">1 / 7</span><button class="game-button primary" id="tutorial-next" type="button" data-i18n="next">下一步</button></div>
     </dialog>
 
     <dialog id="lan-dialog" class="modal lan-modal" aria-labelledby="lan-title">
@@ -284,7 +287,7 @@
         </button>
         <button class="mode-option" id="mode-skill" type="button">
           <span class="mode-option-icon">技</span>
-          <span class="mode-option-body"><b data-i18n="modeSkill">技能模式</b><small data-i18n="modeSkillCopy">无中生有/顺手牵羊/过河拆桥/乐不思蜀/五谷登丰</small></span>
+          <span class="mode-option-body"><b data-i18n="modeSkill">技能模式</b></span>
           <i>→</i>
         </button>
       </div>

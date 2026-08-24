@@ -318,6 +318,9 @@ dialog.modal:not([open]) { display:none !important; }
 .ranking { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:23px 0; }
 .rank-item { min-width:0; padding:12px 8px; border:1px solid rgba(255,255,255,.12); border-radius:8px; background:rgba(0,0,0,.12); font-size:12px; }
 .rank-item b { display:block; margin-bottom:5px; color:var(--gold-bright); font-family:Georgia,serif; font-size:18px; }
+.rank-item .rank-name { font-weight:700; }
+.rank-item .rank-name.ally { color:#6ec7ad; }
+.rank-item .rank-name.foe { color:#d98b72; }
 
 .toast { position:fixed; z-index:20; left:50%; top:95px; width:max-content; max-width:calc(100vw - 24px); transform:translate(-50%,-15px); padding:9px 16px; color:#fff; background:rgba(20,70,61,.96); border:1px solid rgba(154,223,207,.35); border-radius:7px; font-size:12px; text-align:center; opacity:0; pointer-events:none; transition:.2s ease; box-shadow:0 10px 28px rgba(0,0,0,.25); }
 .toast.success { background:rgba(27,91,65,.96); border-color:rgba(151,235,183,.4); }
