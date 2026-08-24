@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#071b18" />
     <meta name="description" content="四人掼蛋单机与局域网对局" />
-    <title>掼蛋 · Hanazar Games v1.4.1</title>
+    <title>掼蛋 · Hanazar Games v1.4.2</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -14,19 +14,6 @@
       <div class="floating-card card-one" aria-hidden="true">A<span>♠</span></div>
       <div class="floating-card card-two red" aria-hidden="true">王<span>★</span></div>
       <div class="floating-card card-three red" aria-hidden="true">2<span>♥</span></div>
-      <header class="home-nav">
-        <div class="brand" aria-label="掼蛋牌桌">
-          <span class="brand-mark">掼</span>
-          <div><h1>掼蛋</h1><p>HANAZAR GAMES</p></div>
-        </div>
-        <div class="home-nav-actions">
-          <a class="ghost-link" href="https://hanazargames.com/" target="_blank" rel="noopener" data-i18n="officialHome">返回官网</a>
-          <button class="icon-button" id="home-settings-button" type="button" aria-label="游戏设置" title="游戏设置">
-            <svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
-          </button>
-        </div>
-      </header>
-
       <section class="hero-panel">
         <div class="hero-copy">
           <p class="hero-kicker" data-i18n="heroKicker">四人结盟 · 牌局争锋</p>
@@ -39,17 +26,7 @@
             <button class="home-compact" id="settings-button" type="button"><span>⚙</span><b data-i18n="settings">游戏设置</b></button>
           </div>
         </div>
-
-        <aside class="announcement-card">
-          <div class="announcement-head"><span data-i18n="announcement">最新公告</span><time>2026.07.29</time></div>
-          <div class="announcement-icon">1.4.0</div>
-          <h3 data-i18n="announcementTitle">全维稳定性深度修复</h3>
-          <p data-i18n="announcementCopy">修复联机开局竞态、快照乱序、极值手牌遮挡与教程横向溢出。</p>
-          <div class="announcement-tags"><span>FIX</span><span>UI</span><span>LAN</span></div>
-        </aside>
       </section>
-
-      <footer class="home-footer"><span>v1.4.1 · Hanazar Games</span><span class="server-ready"><i></i><span data-i18n="ready">准备就绪</span></span></footer>
     </main>
 
     <main class="game-shell view-hidden" id="game-screen">
@@ -183,7 +160,7 @@
       </section>
 
       <footer class="game-footer">
-        <span><i class="online-dot"></i><span id="game-mode-label" data-i18n="singlePlayer">单机练习</span> <small class="version-tag">v1.4.1</small></span>
+        <span><i class="online-dot"></i><span id="game-mode-label" data-i18n="singlePlayer">单机练习</span> <small class="version-tag">v1.4.2</small></span>
         <span id="footer-tip">你的搭档坐在对面</span>
       </footer>
     </main>
@@ -258,7 +235,7 @@
           <label class="setting-toggle"><span><b data-i18n="haptics">震动反馈</b><small data-i18n="hapticsCopy">支持设备在炸弹与获胜时震动</small></span><input id="setting-haptics" type="checkbox"><i></i></label>
           <label class="range-setting"><span><b data-i18n="hapticStrength">震动强度</b><output class="range-value" for="setting-haptic-strength">100%</output></span><input id="setting-haptic-strength" type="range" min="25" max="200" step="25" value="100"></label>
         </section>
-        <section id="settings-panel-about" class="settings-section about-section" role="tabpanel" aria-labelledby="settings-tab-about" data-settings-panel="about" hidden><h3 data-i18n="about">关于</h3><p>Guandan Webgame v1.4.1</p>
+        <section id="settings-panel-about" class="settings-section about-section" role="tabpanel" aria-labelledby="settings-tab-about" data-settings-panel="about" hidden><h3 data-i18n="about">关于</h3><p>Guandan Webgame v1.4.2</p>
           <div class="about-links"><a href="https://github.com/Hanazar-Games/Guandan-Webgame" target="_blank" rel="noopener">GitHub Repository</a><a href="https://github.com/Hanazar-Games/Guandan-Webgame/issues" target="_blank" rel="noopener">Issues</a><a href="https://github.com/Hanazar-Games/Guandan-Webgame/discussions" target="_blank" rel="noopener">Discussions</a><a href="https://github.com/hzagaming" target="_blank" rel="noopener">HzaGaming</a><a href="https://hanazargames.com/" target="_blank" rel="noopener" data-i18n="officialHome">返回官网</a></div>
         </section>
       </div>

@@ -54,16 +54,17 @@ body {
 .home-nav .brand h1 { font-size:21px; }
 .home-nav-actions { display:flex; align-items:center; gap:10px; }
 .ghost-link { padding:8px 12px; color:var(--muted); border:1px solid rgba(255,255,255,.12); border-radius:8px; font-size:11px; text-decoration:none; transition:.18s ease; }
-.hero-panel { width:min(1180px,calc(100vw - 48px)); margin:auto; display:grid; grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr); align-items:center; gap:clamp(42px,7vw,100px); padding:48px 0; }
+.hero-panel { width:min(1180px,calc(100vw - 48px)); margin:auto; display:flex; flex-direction:column; align-items:stretch; gap:clamp(30px,4vw,52px); padding:clamp(36px,6vw,72px) 0; }
+.hero-panel .hero-copy { max-width:760px; }
 .announcement-hidden .hero-panel { grid-template-columns:minmax(0,800px); justify-content:center; }
 .hero-copy { animation:hero-enter var(--motion-hero) cubic-bezier(.2,.8,.2,1) both; }
 .hero-kicker { margin:0 0 15px; color:var(--gold); font-size:11px; font-weight:700; letter-spacing:5px; }
 .hero-copy h2 { max-width:700px; margin:0; font-family:"Songti SC","Noto Serif SC",serif; font-size:clamp(42px,6vw,78px); font-weight:800; line-height:1.04; letter-spacing:2px; }
 .hero-copy h2 em { display:block; color:var(--gold-bright); font-style:normal; text-shadow:0 8px 36px rgba(216,182,106,.16); }
 .hero-description { max-width:590px; margin:24px 0 30px; color:var(--muted); font-size:13px; line-height:1.9; }
-.home-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:650px; }
+.home-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:680px; }
 .home-actions button { color:var(--ink); border-radius:12px; cursor:pointer; transition:transform .2s ease,border-color .2s ease,filter .2s ease; }
-.home-primary,.home-secondary { min-height:84px; display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:10px; padding:12px 18px; text-align:left; border:1px solid rgba(216,182,106,.34); background:linear-gradient(135deg,rgba(216,182,106,.18),rgba(12,61,51,.84)); box-shadow:0 14px 30px rgba(0,0,0,.2); }
+.home-primary,.home-secondary { grid-column:1 / -1; min-height:84px; display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:10px; padding:12px 18px; text-align:left; border:1px solid rgba(216,182,106,.34); background:linear-gradient(135deg,rgba(216,182,106,.18),rgba(12,61,51,.84)); box-shadow:0 14px 30px rgba(0,0,0,.2); }
 .home-secondary { border-color:rgba(106,204,184,.26); background:linear-gradient(135deg,rgba(42,125,107,.22),rgba(3,35,30,.85)); }
 .home-actions .action-index { color:rgba(241,213,142,.58); font-family:Georgia,serif; font-size:12px; }
 .home-actions b { display:block; margin-bottom:5px; font-size:15px; letter-spacing:1px; }
@@ -616,8 +617,13 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   .played-cards { min-height:52px; margin-top:0; padding-left:0; }
   .played-cards .card { --card-w:calc(48px + var(--card-size-adjust)); --card-h:60px; margin-left:-20px; }
   .combo-label { min-height:22px; margin-top:6px; font-size:14px; padding:4px 14px; display:inline-flex; align-items:center; gap:8px; }
-  .combo-who { color:#e9f5ee; font-weight:700; }
+  .combo-who { font-weight:700; }
+  .combo-who.ally { color:#6ec7ad; }
+  .combo-who.foe { color:#d98b72; }
   .combo-name { color:var(--gold-bright); font-weight:800; }
+  /* 已出的牌按阵营描边 (队友青绿/对方砖红), 与出牌人颜色一致 */
+  .played-cards.ally .card { box-shadow:0 0 0 1.5px rgba(110,199,173,.7), 0 4px 10px rgba(0,0,0,.3); }
+  .played-cards.foe .card { box-shadow:0 0 0 1.5px rgba(217,139,114,.7), 0 4px 10px rgba(0,0,0,.3); }
   .action-area {
     right:auto; left:50%; transform:translateX(-50%);
     bottom:var(--btn-bottom,104px);
@@ -644,6 +650,20 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     font-size:9px; letter-spacing:.5px; opacity:.55; pointer-events:none;
   }
   .game-footer #footer-tip { display:none; }
+
+  /* ── 主页精简：手机横屏一屏放下所有保留元素 ── */
+  .home-screen { padding:0 !important; }
+  .hero-panel { gap:14px; padding:24px 0 20px; }
+  .hero-kicker { margin:0 0 8px; font-size:10px; letter-spacing:4px; }
+  .hero-copy h2 { font-size:clamp(30px,7vw,46px); }
+  .hero-description { margin:10px 0 8px; font-size:12px; line-height:1.6; }
+  .home-actions { gap:8px; max-width:560px; }
+  .home-primary,.home-secondary { min-height:56px; padding:8px 14px; }
+  .home-primary,.home-secondary b { font-size:14px; margin-bottom:2px; }
+  .home-primary,.home-secondary small { font-size:10px; }
+  .home-actions .action-index { font-size:11px; }
+  .home-actions button > i { font-size:18px; }
+  .home-compact { min-height:38px; font-size:12px; }
 }
 
 /* 极矮横屏（vh ≤ 330）进一步压缩：卡更小、按钮更小、对手区更小 */

@@ -431,13 +431,18 @@
     if (!state.currentPlay) {
       el["played-by"].textContent = "新一轮 · 可出任意合法牌型";
       el["played-cards"].innerHTML = "";
+      el["played-cards"].className = "played-cards";
       el["combo-label"].innerHTML = "";
       return;
     }
     el["played-by"].textContent = "";
     el["played-cards"].innerHTML = state.currentPlay.cards.map(c => cardMarkup(c)).join("");
-    // 出牌人(白字) + 牌型(黄字) 合并进 combo-label
-    el["combo-label"].innerHTML = `<span class="combo-who">${escapeHtml(NAMES[state.lastPlayer])} 出牌</span><span class="combo-name">${escapeHtml(COMBO_NAMES[state.currentPlay.combo.type])}</span>`;
+    // 出牌人(按阵营着色: 队友绿/对方红) + 牌型(黄字) 合并进 combo-label
+    const isAlly = (state.lastPlayer % 2) === (state.localPlayer % 2);
+    const whoCls = isAlly ? "combo-who ally" : "combo-who foe";
+    el["combo-label"].innerHTML = `<span class="${whoCls}">${escapeHtml(NAMES[state.lastPlayer])} 出牌</span><span class="combo-name">${escapeHtml(COMBO_NAMES[state.currentPlay.combo.type])}</span>`;
+    // 给已出的牌加阵营描边 (队友绿/对方红), 与出牌人颜色一致
+    el["played-cards"].className = `played-cards ${isAlly ? "ally" : "foe"}`;
   }
 
   function render() {
