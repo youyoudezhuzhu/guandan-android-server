@@ -141,9 +141,9 @@
           <div class="turn-pill" id="turn-3">思考中</div>
         </section>
 
-        <div class="opponent-hand opponent-top" id="opponent-hand-2" aria-hidden="true"></div>
-        <div class="opponent-hand opponent-left" id="opponent-hand-1" aria-hidden="true"></div>
-        <div class="opponent-hand opponent-right" id="opponent-hand-3" aria-hidden="true"></div>
+        <div class="opponent-hand opponent-top view-hidden" id="opponent-hand-2" aria-hidden="true"></div>
+        <div class="opponent-hand opponent-left view-hidden" id="opponent-hand-1" aria-hidden="true"></div>
+        <div class="opponent-hand opponent-right view-hidden" id="opponent-hand-3" aria-hidden="true"></div>
 
         <section class="trick-zone" aria-live="polite">
           <div class="status-message" id="status-message">
@@ -167,12 +167,14 @@
 
         <div class="action-area">
           <p class="selection-tip" id="selection-tip" aria-live="polite">请选择要出的牌</p>
-          <div class="action-buttons">
-            <button class="game-button secondary" id="pass-button" type="button" aria-keyshortcuts="Space" title="不出（空格）"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8 12h8"/></svg><span data-i18n="pass">不出</span></button>
-            <button class="game-button secondary" id="hint-button" type="button" aria-keyshortcuts="H" title="提示（H）"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17h6M10 20h4"/><path d="M8.5 14.5A6 6 0 1 1 15.5 14.5c-.8.6-1.1 1.2-1.1 2.5h-4.8c0-1.3-.3-1.9-1.1-2.5Z"/></svg><span data-i18n="hint">提示</span></button>
-            <button class="game-button primary" id="play-button" type="button" aria-keyshortcuts="Enter" title="出牌（Enter）"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M7 10l5-5 5 5"/></svg><span data-i18n="play">出牌</span></button>
+          <div class="action-row">
+            <div class="action-buttons">
+              <button class="game-button secondary" id="pass-button" type="button" aria-keyshortcuts="Space" title="不出（空格）"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8 12h8"/></svg><span data-i18n="pass">不出</span></button>
+              <button class="game-button secondary" id="hint-button" type="button" aria-keyshortcuts="H" title="提示（H）"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17h6M10 20h4"/><path d="M8.5 14.5A6 6 0 1 1 15.5 14.5c-.8.6-1.1 1.2-1.1 2.5h-4.8c0-1.3-.3-1.9-1.1-2.5Z"/></svg><span data-i18n="hint">提示</span></button>
+              <button class="game-button primary" id="play-button" type="button" aria-keyshortcuts="Enter" title="出牌（Enter）"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M7 10l5-5 5 5"/></svg><span data-i18n="play">出牌</span></button>
+            </div>
+            <div class="skill-bar view-hidden" id="skill-bar" aria-label="技能卡"></div>
           </div>
-          <div class="skill-bar view-hidden" id="skill-bar" aria-label="技能卡"></div>
         </div>
 
         <div class="hand-scroll" id="hand-scroll">

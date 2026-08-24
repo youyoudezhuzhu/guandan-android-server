@@ -22,13 +22,13 @@
     const bottomArea = handH + 4 + gap + btnH + gap + tipH;
     // 中间出牌区
     const mid = vh - topBottom - bottomArea;
-    const trickH = Math.round(Math.min(132, Math.max(compact ? 70 : 84, mid * 0.92)));
-    const trickTop = Math.round(topBottom + Math.max(4, (mid - trickH) / 2));
+    const trickH = Math.round(Math.min(150, Math.max(compact ? 74 : 90, mid * 0.95)));
+    const trickTop = Math.round(topBottom - 6 + Math.max(0, (mid - trickH) / 3));
     // 卡片尺寸微调：视口越矮牌越小
     const cardAdj = Math.round((vh - (compact ? 300 : 340)) / 12);
     root.style.setProperty("--trick-top", trickTop + "px");
     root.style.setProperty("--trick-h", trickH + "px");
-    root.style.setProperty("--btn-bottom", (handH + 4 + 8) + "px");
+    root.style.setProperty("--btn-bottom", (handH - 6) + "px");
     root.style.setProperty("--hand-h", handH + "px");
     root.style.setProperty("--card-size-adjust", cardAdj + "px");
     // 兜底修正：渲染后实测出牌区是否压到提示文字，压到则上移
@@ -68,6 +68,19 @@
   const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   const DEFAULT_NAMES = ["牌手", "周舟", "林默", "许晏"];
   let NAMES = [...DEFAULT_NAMES];
+  // AI 玩家名字库（单机模式每次开局随机取 3 个）
+  const AI_NAME_POOL = ["周舟", "林默", "许晏", "阿杰", "老陈", "王芳", "张伟", "李静", "刘洋", "赵磊",
+    "孙悦", "钱进", "吴迪", "郑楠", "冯军", "何平", "高翔", "林熙", "陈雨", "苏晴",
+    "小马", "大龙", "阿康", "老周", "二牛", "胖虎", "大宝", "静姐", "阿珍", "老赵"];
+  function randomAINames() {
+    const pool = [...AI_NAME_POOL];
+    const picked = [];
+    for (let i = 0; i < 3; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      picked.push(pool.splice(idx, 1)[0]);
+    }
+    return picked;
+  }
   const LEVELS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
   const COMBO_NAMES = {
     single: "单张", pair: "对子", triple: "三张", fullhouse: "三带二",
@@ -319,7 +332,7 @@
     Skip: "目标下回合被跳过", Harvest: "所有未出完玩家各 +1 张"
   };
   const SKILL_GLYPH = {
-    DrawTwo: "二", Steal: "手", Discard: "拆", Skip: "眠", Harvest: "丰"
+    DrawTwo: "🃏", Steal: "🫳", Discard: "✂️", Skip: "💤", Harvest: "🌾"
   };
   const SKILL_THEME = {
     DrawTwo: "#cda75c", Steal: "#7fb3d5", Discard: "#c07a5c", Skip: "#9b8fc4", Harvest: "#7fbf7f"
@@ -339,8 +352,10 @@
           const color = SKILL_THEME[skill.type] || "#cda75c";
           return `<button class="skill-card ${humanTurn ? "enabled" : "disabled"}" data-skill-idx="${idx}" data-skill-type="${skill.type}" type="button" style="--skill-color:${color}" aria-label="${name}">
             <span class="skill-card-glyph">${glyph}</span>
-            <span class="skill-card-name">${name}</span>
-            <span class="skill-card-desc">${desc}</span>
+            <span class="skill-card-body">
+              <span class="skill-card-name">${name}</span>
+              <span class="skill-card-desc">${desc}</span>
+            </span>
           </button>`; })
         .join("")
       : `<span class="skill-empty">已无技能</span>`;
@@ -416,12 +431,13 @@
     if (!state.currentPlay) {
       el["played-by"].textContent = "新一轮 · 可出任意合法牌型";
       el["played-cards"].innerHTML = "";
-      el["combo-label"].textContent = "";
+      el["combo-label"].innerHTML = "";
       return;
     }
-    el["played-by"].textContent = `${NAMES[state.lastPlayer]} 出牌`;
+    el["played-by"].textContent = "";
     el["played-cards"].innerHTML = state.currentPlay.cards.map(c => cardMarkup(c)).join("");
-    el["combo-label"].textContent = COMBO_NAMES[state.currentPlay.combo.type];
+    // 出牌人(白字) + 牌型(黄字) 合并进 combo-label
+    el["combo-label"].innerHTML = `<span class="combo-who">${escapeHtml(NAMES[state.lastPlayer])} 出牌</span><span class="combo-name">${escapeHtml(COMBO_NAMES[state.currentPlay.combo.type])}</span>`;
   }
 
   function render() {
@@ -1394,7 +1410,9 @@
     startSingle(mode) {
       state.localPlayer = 0;
       state.lan = null;
-      NAMES = [...DEFAULT_NAMES];
+      // 玩家自己固定为"牌手"，3 个 AI 从名字库随机取
+      const aiNames = randomAINames();
+      NAMES = ["牌手", ...aiNames];
       el["again-button"].disabled = false;
       state.skillMode = mode === "skill";
       startGame(true);
