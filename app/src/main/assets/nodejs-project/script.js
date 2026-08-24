@@ -616,36 +616,30 @@
     }
   }
 
-  // 技能效果日志(对家头像右侧,顶部齐平)
+  // 技能效果日志(对家头像右侧,顶部齐平) - 规范格式: 技能名 → 玩家变化｜玩家变化
+  // 左右两列: 技能名(固定列) + 结果(多行时每行玩家左对齐)
   function renderSkillLog() {
     const slog = state.skillLog || [];
     if (!slog.length) { el["skill-log"].classList.add("view-hidden"); return; }
     el["skill-log"].classList.remove("view-hidden");
     let html = "";
-    slog.slice(-4).forEach(s => {
-      // res 含 \n 时拆成多行(如五谷登丰每人一行)
+    slog.slice(-5).forEach(s => {
+      const glyph = SKILL_GLYPH[s.type] || "";
+      const cn = SKILL_BUTTON_CN[s.type] || s.type;
       const resLines = s.res ? String(s.res).split("\n") : [""];
-      resLines.forEach((rl, i) => {
-        let line = "";
-        if (i === 0) {
-          if (s.who !== undefined) line += `<span class="who">${escapeHtml(NAMES[s.who])}</span> `;
-          line += `<span class="sname">${escapeHtml(s.name)}</span>`;
-          if (rl) line += ` <span class="sres">${escapeHtml(rl)}</span>`;
-          if (s.to !== undefined) line += ` <span class="to">${escapeHtml(NAMES[s.to])}</span>`;
-        } else if (rl) {
-          line += `<span class="sres">${escapeHtml(rl)}</span>`;
-        }
-        if (line) html += `<div class="slog">${line}</div>`;
-      });
+      html += `<div class="slog"><span class="shea"><span class="sname">${glyph}${escapeHtml(cn)}</span><span class="sarrow">→</span></span><span class="sres">` +
+        resLines.map(rl => rl ? `<span class="sline">${escapeHtml(rl)}</span>` : "").join("") +
+        `</span></div>`;
     });
     el["skill-log"].innerHTML = html;
   }
 
-  // 追加一条技能效果到 skillLog(最多4条)。who=作用者, to=作用对象
-  function pushSkillLog(who, name, res, to) {
+  // 追加一条技能效果到 skillLog(最多5条)。type=技能类型, res=规范化的结果串(牌变化/状态)
+  function pushSkillLog(type, res) {
     if (!state.skillLog) state.skillLog = [];
-    state.skillLog.push({ who, name, res, to });
-    if (state.skillLog.length > 4) state.skillLog.shift();
+    state.skillLog.push({ type, res });
+    if (state.skillLog.length > 5) state.skillLog.shift();
+    return state.skillLog[state.skillLog.length - 1];
   }
 
   function selectedCards() {
@@ -798,7 +792,7 @@
       hand.push(...drawn);
       sortHand(hand);
       lastSkillEffect = `${NAMES[user]} 使用无中生有${drawn.length ? `，获得 ${drawn.map(c=>cardText(c)).join("、")}` : "，出牌堆为空无牌可抽"}`;
-      pushSkillLog(user, "无中生有", drawn.length ? `获得 ${drawn.map(c=>cardText(c)).join("、")}` : "出牌堆为空");
+      pushSkillLog("DrawTwo", drawn.length ? `${NAMES[user]} +${drawn.map(c=>cardText(c)).join(" ")}` : `${NAMES[user]} 出牌堆为空`);
     } else if (type === "Steal") {
       // 顺手牵羊：从目标偷 1 张随机牌
       if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
@@ -806,19 +800,19 @@
       hand.push(stolen);
       sortHand(hand);
       lastSkillEffect = `${NAMES[user]} 对 ${NAMES[target]} 使用顺手牵羊，偷得 ${cardText(stolen)}`;
-      pushSkillLog(user, "顺手牵羊", `偷得 ${cardText(stolen)}`, target);
+      pushSkillLog("Steal", `${NAMES[user]} +${cardText(stolen)}｜${NAMES[target]} −${cardText(stolen)}`);
     } else if (type === "Discard") {
       // 过河拆桥：目标弃 1 张随机牌(直接移出本局, 不进废弃堆)
       if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
       const removed = takeRandomFromHand(target, 1)[0];
       lastSkillEffect = `${NAMES[user]} 对 ${NAMES[target]} 使用过河拆桥，弃掉 ${cardText(removed)}`;
-      pushSkillLog(user, "过河拆桥", `弃掉 ${cardText(removed)}`, target);
+      pushSkillLog("Discard", `${NAMES[target]} −${cardText(removed)}`);
     } else if (type === "Skip") {
       // 乐不思蜀：目标下回合跳过
       if (target === undefined) return false;
       state.skipNextTurn[target] = true;
       lastSkillEffect = `${NAMES[user]} 对 ${NAMES[target]} 使用乐不思蜀，下回合被跳过`;
-      pushSkillLog(user, "乐不思蜀", `下回合跳过`, target);
+      pushSkillLog("Skip", `${NAMES[target]} ⏭1回合`);
     } else if (type === "Harvest") {
       // 五谷丰登：所有未出完玩家各从出牌堆获得最多1张(出牌堆不足时随机分配给若干人)
       const active = [0, 1, 2, 3].filter(s => !state.finishOrder.includes(s) && state.hands[s] && state.hands[s].length > 0);
@@ -840,7 +834,11 @@
       }
       lastSkillEffect = `${NAMES[user]} 使用五谷登丰，` + (gains.length ? gains.map(g=>`${NAMES[g.seat]}获得${cardText(g.card)}`).join("、") : "出牌堆为空");
       // 每人一行写清获得的具体牌
-      pushSkillLog(user, "五谷登丰", gains.length ? gains.map(g=>`${NAMES[g.seat]}获得${cardText(g.card)}`).join("\n") : "出牌堆为空");
+      // 五谷登丰: 每2人一行(用\n分隔), 多行在sres列左对齐
+      const hparts = gains.map(g=>`${NAMES[g.seat]} +${cardText(g.card)}`);
+      const hrows = [];
+      for (let i=0; i<hparts.length; i+=2) hrows.push(hparts.slice(i,i+2).join("｜"));
+      pushSkillLog("Harvest", hrows.length ? hrows.join("\n") : "出牌堆为空");
     } else if (type === "Swap") {
       // 移花接木：与目标随机交换 1 张手牌
       if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
@@ -851,7 +849,7 @@
       sortHand(hand);
       sortHand(state.hands[target]);
       lastSkillEffect = `${NAMES[user]} 对 ${NAMES[target]} 使用移花接木，${cardText(myCard)} 获得 ${cardText(tarCard)}`;
-      pushSkillLog(user, "移花接木", `${cardText(myCard)}获得${cardText(tarCard)}`, target);
+      pushSkillLog("Swap", `${NAMES[user]} ${cardText(myCard)} ↔ ${NAMES[target]} ${cardText(tarCard)}`);
     } else if (type === "Peek") {
       // 明察秋毫：查看目标最多 3 张手牌(只有使用者本人可见)
       if (target === undefined || !state.hands[target]) return false;
@@ -860,36 +858,37 @@
       const peeked = [...targetHand].slice(0, count).map(c => cardText(c));
       state.peekResult = { target, cards: peeked };
       lastSkillEffect = `${NAMES[user]} 对 ${NAMES[target]} 使用明察秋毫，查看 ${count} 张手牌`;
-      pushSkillLog(user, "明察秋毫", `查看 ${count} 张手牌`, target);
+      pushSkillLog("Peek", `${NAMES[target]} 参看${count}张手牌`);
       // 弹窗展示(仅使用者), 点确定才关闭
       showPeekDialog(peeked, NAMES[target]);
     } else if (type === "Replace") {
       // 偷梁换柱：弃自己 1 张(移出本局), 再从出牌堆抽 1 张。弃牌可由玩家自选
       if (!hand.length || !state.discardPile.length) return false;
+      let discarded;
       if (cardId) {
         const idx = hand.findIndex(c => c.id === cardId);
         if (idx < 0) return false;
-        hand.splice(idx, 1);
+        discarded = hand.splice(idx, 1)[0];
       } else {
-        takeRandomFromHand(user, 1);
+        discarded = takeRandomFromHand(user, 1)[0];
       }
       const drawn = drawFromDiscard(1);
       if (drawn.length) { hand.push(drawn[0]); sortHand(hand); }
       lastSkillEffect = `${NAMES[user]} 使用偷梁换柱${drawn.length ? `，获得 ${cardText(drawn[0])}` : "，出牌堆为空"}`;
-      pushSkillLog(user, "偷梁换柱", drawn.length ? `获得${cardText(drawn[0])}` : "出牌堆为空");
+      pushSkillLog("Replace", `${NAMES[user]} −${cardText(discarded)}${drawn.length ? ` +${cardText(drawn[0])}` : ""}`);
     } else if (type === "EmptyFort") {
       // 空城计：手牌≤6时, 本回合免疫其他玩家的目标型技能
       if (state.hands[user].length > 6) return false;
       state.emptyFortImmunity[user] = true;
       lastSkillEffect = `${NAMES[user]} 使用空城计，本回合免疫目标型技能`;
-      pushSkillLog(user, "空城计", "本回合免疫目标技能");
+      pushSkillLog("EmptyFort", `${NAMES[user]} 🛡免疫`);
     } else if (type === "SoundEastWest") {
       // 声东击西：锁定目标技能, 逼其主动用技能解除(消耗1张)
       if (target === undefined) return false;
       if (state.distracted[target]) return false; // 已有该状态, 无效
       state.distracted[target] = true;
       lastSkillEffect = `${NAMES[user]} 对 ${NAMES[target]} 使用声东击西，锁定对方技能`;
-      pushSkillLog(user, "声东击西", `锁定`, target);
+      pushSkillLog("SoundEastWest", `${NAMES[target]} 🔒技能封锁`);
       // 施放反馈弹窗(和明察秋毫同样式)
       showDistractDialog(`【声东击西】已锁定 ${NAMES[target]}！对方需用一张技能才能解除`, null, null);
     }
@@ -930,22 +929,20 @@
       sendLanAction({ type: "action", action: "skill", skill: type, target, cardIdx, cardId });
       return true;
     }
-    // 声东击西锁定: 被锁定玩家用技能会被"抵消"(不结算效果, 只用来解除锁定)
+    // 声东击西锁定: 被锁定玩家用技能时, 技能正常生效并同时解除锁定(追加🔓)
     const wasDistracted = state.distracted[user];
     lastSkillEffect = "";  // 每次使用前清空, 避免残留
-    const ok = wasDistracted ? true : applySkill(user, type, target, cardId);
+    const ok = applySkill(user, type, target, cardId);
     if (ok) {
       const mine = state.skillCards[user] || [];
       const idx = cardIdx !== undefined ? cardIdx : mine.findIndex(s => s.type === type);
       if (idx >= 0) mine.splice(idx, 1);
-      // 声东击西解除: 处于该状态的玩家用技能后立即解除(技能被抵消)
+      // 声东击西解除: 技能正常生效, 在最后一条日志追加🔓表示解除
       let skipBanner = false;
-      if (state.distracted[user]) {
+      if (wasDistracted) {
+        const last = state.skillLog[state.skillLog.length - 1];
+        if (last) last.res = last.res + " 🔓";
         state.distracted[user] = false;
-        pushSkillLog(user, SKILL_BUTTON_CN[type] || type, `被声东击西抵消`, target);
-        skipBanner = true;
-      } else if (wasDistracted) {
-        pushSkillLog(user, SKILL_BUTTON_CN[type] || type, `被声东击西抵消`, target);
         skipBanner = true;
       }
       // 每回合最多用1张技能: 标记本回合已用技能
