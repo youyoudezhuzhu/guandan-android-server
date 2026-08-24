@@ -628,35 +628,36 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 }
 
 
-/* ═══ 技能模式 ── 精致技能卡与目标选择 ═══ */
+/* ═══ 技能模式 ── 紧凑技能卡与目标选择 ═══ */
 .skill-bar {
-  display:flex; gap:14px; justify-content:center; align-items:center;
-  margin-top:12px; flex-wrap:wrap;
+  display:flex; gap:8px; justify-content:center; align-items:center;
+  margin-top:6px; flex-wrap:wrap;
 }
 .skill-bar.view-hidden { display:none; }
 .skill-card {
-  position:relative; display:flex; flex-direction:column; align-items:center; gap:3px;
-  min-width:104px; padding:10px 14px 9px; border-radius:12px;
+  position:relative; display:flex; align-items:center; gap:5px;
+  padding:4px 9px; border-radius:8px;
   border:1px solid rgba(255,255,255,.18); background:linear-gradient(180deg,rgba(35,62,53,.97),rgba(16,38,32,.97));
-  box-shadow:0 6px 16px rgba(0,0,0,.35), inset 0 1px rgba(255,255,255,.06);
-  color:#f4edd8; cursor:pointer; transition:.18s ease;
+  box-shadow:0 3px 8px rgba(0,0,0,.3), inset 0 1px rgba(255,255,255,.06);
+  color:#f4edd8; cursor:pointer; transition:.15s ease;
+  max-width:170px;
 }
 .skill-card::before {
-  content:""; position:absolute; inset:0; border-radius:12px;
-  background:radial-gradient(110px 60px at 50% -12px, color-mix(in srgb, var(--skill-color) 26%, transparent), transparent 70%);
+  content:""; position:absolute; inset:0; border-radius:8px;
+  background:radial-gradient(80px 40px at 50% -10px, color-mix(in srgb, var(--skill-color) 24%, transparent), transparent 70%);
   opacity:.85; pointer-events:none;
 }
 .skill-card-glyph {
-  width:38px; height:38px; border-radius:9px; display:flex; align-items:center; justify-content:center;
-  font-size:18px; font-weight:800; color:#101f1a;
+  width:20px; height:20px; border-radius:5px; display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:800; color:#101f1a; flex-shrink:0;
   background:linear-gradient(180deg, var(--skill-color), color-mix(in srgb, var(--skill-color) 62%, #303));
-  box-shadow:inset 0 1px rgba(255,255,255,.4), 0 2px 5px rgba(0,0,0,.25);
+  box-shadow:inset 0 1px rgba(255,255,255,.4), 0 1px 3px rgba(0,0,0,.25);
 }
-.skill-card-name { font-size:12px; font-weight:700; letter-spacing:.5px; }
-.skill-card-desc { font-size:9px; opacity:.72; letter-spacing:.2px; }
+.skill-card-name { font-size:11px; font-weight:700; letter-spacing:.3px; white-space:nowrap; }
+.skill-card-desc { font-size:8.5px; opacity:.7; letter-spacing:.1px; white-space:nowrap; }
 .skill-card.enabled:hover:not(:disabled) {
-  transform:translateY(-2px); border-color:color-mix(in srgb, var(--skill-color) 70%, #f8e3a9);
-  box-shadow:0 10px 22px rgba(0,0,0,.4), 0 0 0 1px color-mix(in srgb, var(--skill-color) 45%, transparent), inset 0 1px rgba(255,255,255,.1);
+  transform:translateY(-1px); border-color:color-mix(in srgb, var(--skill-color) 70%, #f8e3a9);
+  box-shadow:0 6px 14px rgba(0,0,0,.35), 0 0 0 1px color-mix(in srgb, var(--skill-color) 45%, transparent), inset 0 1px rgba(255,255,255,.1);
 }
 .skill-card.enabled:active:not(:disabled) { transform:translateY(0); }
 .skill-card.disabled { opacity:.38; cursor:not-allowed; pointer-events:none; }
