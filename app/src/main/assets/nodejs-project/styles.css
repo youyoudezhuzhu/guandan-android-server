@@ -167,20 +167,22 @@ button:focus-visible, .card:focus-visible { outline: 3px solid var(--gold-bright
 
 .match-score { position:absolute; z-index:3; top:22px; right:clamp(24px,4vw,62px); display:flex; align-items:center; gap:13px; padding:8px 13px; border:1px solid rgba(255,255,255,.1); border-radius:9px; background:rgba(2,29,25,.42); backdrop-filter:blur(5px); }
 .match-score > i { width:1px; height:29px; background:rgba(255,255,255,.12); }
-.table-side-status { position:absolute; z-index:3; top:54px; left:8px; display:flex; flex-direction:column; gap:3px; padding:5px 8px; border:1px solid rgba(255,255,255,.1); border-radius:7px; background:rgba(2,29,25,.4); backdrop-filter:blur(4px); font-size:11px; color:#e5d9b6; max-width:38vw; }
+.table-side-status { position:absolute; z-index:3; top:10px; left:112px; display:flex; flex-direction:column; gap:3px; padding:4px 7px; border:1px solid rgba(255,255,255,.1); border-radius:7px; background:rgba(2,29,25,.4); backdrop-filter:blur(4px); font-size:10px; color:#e5d9b6; max-width:222px; max-height:96px; overflow:hidden; }
 .table-side-status .tribute-row { display:flex; flex-wrap:wrap; align-items:center; gap:3px; }
 .table-side-status .tribute-row .t-owner { margin-right:2px; font-size:10px; color:rgba(255,255,255,.55); white-space:nowrap; }
 .table-side-status .tribute-row .t-owner.ally { color:#6ec7ad; }
 .table-side-status .tribute-row .t-owner.foe { color:#d98b72; }
-.table-side-status .tribute-row .t-card { display:inline-flex; align-items:center; gap:1px; padding:1px 5px; border-radius:4px; background:rgba(0,0,0,.25); font-weight:600; font-size:11px; white-space:nowrap; }
+.table-side-status .tribute-row .t-card { display:inline-flex; align-items:center; gap:1px; padding:1px 5px; border-radius:4px; background:rgba(0,0,0,.25); font-weight:600; font-size:10px; white-space:nowrap; }
 .table-side-status .tribute-row .t-card .t-suit-red { color:#e2554d; }
 .table-side-status .tribute-row .t-card .t-suit-black { color:#dfe6ee; }
 .table-side-status .tribute-row .t-card .t-joker { color:var(--gold-bright); }
 .table-side-status .tribute-row .t-arrow { color:rgba(255,255,255,.35); font-size:10px; }
-.skill-log { display:flex; flex-direction:column; gap:2px; margin-top:4px; padding-top:4px; border-top:1px solid rgba(255,255,255,.08); font-size:10px; color:rgba(255,255,255,.72); }
-.skill-log .slog { white-space:nowrap; }
+.skill-log { display:flex; flex-direction:column; gap:1px; margin-top:3px; padding-top:3px; border-top:1px solid rgba(255,255,255,.08); font-size:9px; color:rgba(255,255,255,.78); }
+.skill-log .slog { display:flex; flex-wrap:wrap; align-items:center; gap:2px; white-space:nowrap; }
+.skill-log .slog .who { font-weight:700; color:#8fdfc4; }
 .skill-log .slog .sname { font-weight:700; color:var(--gold-bright); }
-.skill-log .slog .sres { color:rgba(255,255,255,.6); }
+.skill-log .slog .sres { color:#e8d9a8; }
+.skill-log .slog .to { color:rgba(255,255,255,.7); }
 .score-team { display:grid; grid-template-columns:auto auto; align-items:center; gap:0 7px; color:var(--muted); font-size:9px; }
 .score-team strong { grid-row:1 / 3; grid-column:2; color:#e4ddd0; font-family:Georgia,serif; font-size:23px; }
 .score-team small { color:rgba(255,255,255,.58); font-size:9px; }

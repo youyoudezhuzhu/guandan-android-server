@@ -615,15 +615,22 @@
     const secondRow = rowOf(state.secondSeat);
     let html = headRow + secondRow;
     if (slog.length) {
-      html += `<div class="skill-log">` + slog.slice(-4).map(s => `<div class="slog"><span class="sname">${escapeHtml(s.name)}</span> <span class="sres">${escapeHtml(s.res)}</span></div>`).join("") + `</div>`;
+      html += `<div class="skill-log">` + slog.slice(-4).map(s => {
+        let line = "";
+        if (s.who !== undefined) line += `<span class="who">${escapeHtml(NAMES[s.who])}</span> `;
+        line += `<span class="sname">${escapeHtml(s.name)}</span>`;
+        if (s.res) line += ` <span class="sres">${escapeHtml(s.res)}</span>`;
+        if (s.to !== undefined) line += ` <span class="to">${escapeHtml(NAMES[s.to])}</span>`;
+        return `<div class="slog">${line}</div>`;
+      }).join("") + `</div>`;
     }
     el["tribute-bar"].innerHTML = html;
   }
 
-  // 追加一条技能效果到 skillLog(最多4条)
-  function pushSkillLog(name, res) {
+  // 追加一条技能效果到 skillLog(最多4条)。who=作用者, to=作用对象
+  function pushSkillLog(who, name, res, to) {
     if (!state.skillLog) state.skillLog = [];
-    state.skillLog.push({ name, res });
+    state.skillLog.push({ who, name, res, to });
     if (state.skillLog.length > 4) state.skillLog.shift();
   }
 
@@ -777,7 +784,7 @@
       hand.push(...drawn);
       sortHand(hand);
       showToast(`${NAMES[user]} 使用了【无中生有】${drawn.length ? `，获得 ${drawn.length} 张牌！` : "，出牌堆为空无牌可抽！"}`, drawn.length ? "success" : "info");
-      pushSkillLog("无中生有", drawn.length ? `获得 ${drawn.length} 张` : "出牌堆为空");
+      pushSkillLog(user, "无中生有", drawn.length ? `获得 ${drawn.length} 张` : "出牌堆为空");
     } else if (type === "Steal") {
       // 顺手牵羊：从目标偷 1 张随机牌
       if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
@@ -785,19 +792,19 @@
       hand.push(stolen);
       sortHand(hand);
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【顺手牵羊】！`, "success");
-      pushSkillLog("顺手牵羊", `偷 ${cardText(stolen)}`);
+      pushSkillLog(user, "顺手牵羊", `偷得`, target);
     } else if (type === "Discard") {
       // 过河拆桥：目标弃 1 张随机牌(直接移出本局, 不进废弃堆)
       if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
       takeRandomFromHand(target, 1);
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【过河拆桥】！`, "success");
-      pushSkillLog("过河拆桥", `弃掉 ${NAMES[target]} 1 张`);
+      pushSkillLog(user, "过河拆桥", `弃${NAMES[target]} 1 张`);
     } else if (type === "Skip") {
       // 乐不思蜀：目标下回合跳过
       if (target === undefined) return false;
       state.skipNextTurn[target] = true;
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【乐不思蜀】，下回合被跳过！`, "success");
-      pushSkillLog("乐不思蜀", `${NAMES[target]} 下回合跳过`);
+      pushSkillLog(user, "乐不思蜀", `下回合跳过`, target);
     } else if (type === "Harvest") {
       // 五谷丰登：所有未出完玩家各从出牌堆获得最多1张(出牌堆不足时随机分配给若干人)
       const active = [0, 1, 2, 3].filter(s => !state.finishOrder.includes(s) && state.hands[s] && state.hands[s].length > 0);
@@ -816,7 +823,7 @@
         }
       }
       showToast(`${NAMES[user]} 使用了【五谷登丰】${available ? "，未出完玩家各获得牌！" : "，出牌堆为空！"}`, available ? "success" : "info");
-      pushSkillLog("五谷登丰", available ? "未出完玩家各+1" : "出牌堆为空");
+      pushSkillLog(user, "五谷登丰", available ? "各获得1张" : "出牌堆为空");
     } else if (type === "Swap") {
       // 移花接木：与目标随机交换 1 张手牌
       if (target === undefined || !state.hands[target] || state.hands[target].length === 0) return false;
@@ -827,7 +834,7 @@
       sortHand(hand);
       sortHand(state.hands[target]);
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【移花接木】, 交换了 1 张牌！`, "success");
-      pushSkillLog("移花接木", `与 ${NAMES[target]} 交换1张`);
+      pushSkillLog(user, "移花接木", `互换1张`, target);
     } else if (type === "Peek") {
       // 明察秋毫：查看目标最多 3 张手牌(只有使用者本人可见)
       if (target === undefined || !state.hands[target]) return false;
@@ -836,7 +843,7 @@
       const peeked = [...targetHand].slice(0, count).map(c => cardText(c));
       state.peekResult = { target, cards: peeked };
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【明察秋毫】！`, "success");
-      pushSkillLog("明察秋毫", `查看 ${NAMES[target]} ${count} 张`);
+      pushSkillLog(user, "明察秋毫", `查看手掌`, target);
       // 弹窗展示(仅使用者), 点确定才关闭
       showPeekDialog(peeked, NAMES[target]);
     } else if (type === "Replace") {
@@ -852,20 +859,20 @@
       const drawn = drawFromDiscard(1);
       if (drawn.length) { hand.push(drawn[0]); sortHand(hand); }
       showToast(`${NAMES[user]} 使用了【偷梁换柱】！${drawn.length ? `，抽到 ${cardText(drawn[0])}` : "，出牌堆为空"}`);
-      pushSkillLog("偷梁换柱", drawn.length ? `抽到 ${cardText(drawn[0])}` : "出牌堆为空");
+      pushSkillLog(user, "偷梁换柱", drawn.length ? `获得${cardText(drawn[0])}` : "出牌堆为空");
     } else if (type === "EmptyFort") {
       // 空城计：手牌≤6时, 本回合免疫其他玩家的目标型技能
       if (state.hands[user].length > 6) return false;
       state.emptyFortImmunity[user] = true;
       showToast(`${NAMES[user]} 使用了【空城计】, 本回合免疫目标型技能！`, "success");
-      pushSkillLog("空城计", "本回合免疫目标技能");
+      pushSkillLog(user, "空城计", "本回合免疫目标技能");
     } else if (type === "SoundEastWest") {
       // 声东击西：锁定目标技能, 逼其主动用技能解除(消耗1张)
       if (target === undefined) return false;
       if (state.distracted[target]) return false; // 已有该状态, 无效
       state.distracted[target] = true;
       showToast(`${NAMES[user]} 对 ${NAMES[target]} 使用了【声东击西】！`, "success");
-      pushSkillLog("声东击西", `锁定 ${NAMES[target]}`);
+      pushSkillLog(user, "声东击西", `锁定`, target);
       // 施放反馈弹窗(和明察秋毫同样式)
       showDistractDialog(`【声东击西】已锁定 ${NAMES[target]}！对方需用一张技能才能解除`, null, null);
     }
@@ -917,10 +924,10 @@
       let skipBanner = false;
       if (state.distracted[user]) {
         state.distracted[user] = false;
-        pushSkillLog(SKILL_BUTTON_CN[type] || type, "被声东击西抵消(解除锁定)");
+        pushSkillLog(user, SKILL_BUTTON_CN[type] || type, `被声东击西抵消`, target);
         skipBanner = true;
       } else if (wasDistracted) {
-        pushSkillLog(SKILL_BUTTON_CN[type] || type, "被声东击西抵消(解除锁定)");
+        pushSkillLog(user, SKILL_BUTTON_CN[type] || type, `被声东击西抵消`, target);
         skipBanner = true;
       }
       // 每回合最多用1张技能: 标记本回合已用技能
