@@ -400,9 +400,9 @@
     if (skill.type === "EmptyFort" && state.hands[state.localPlayer].length > 6) {
       showToast("空城计需要手牌 ≤6 张才能使用", "info"); return;
     }
-    // 声东击西锁定: 处于该状态的玩家出技能前需确认(确认后技能发出并解除锁定)
+    // 声东击西锁定: 被锁玩家出技能时提示"已被锁定, 需用当前技能解除"
     if (state.distracted[state.localPlayer]) {
-      showDistractDialog("你处于【声东击西】状态，使用技能将解除该状态。确认使用？",
+      showDistractDialog("你已被声东击西技能锁定，需要出本张技能卡来解除锁定（该技能正常生效）。确认使用？",
         [{ label: "取消", primary: false, value: "cancel" }, { label: "确认", primary: true, value: "ok" }],
         () => {
           // 确认: 真正执行技能(无论是否需目标)
@@ -560,6 +560,8 @@
       byId(`player-${position}`).classList.toggle("finished", state.finishOrder.includes(seat));
       byId(`player-${position}`).classList.toggle("dealer", seat === state.dealer);
       byId(`player-${position}`).classList.toggle("distracted", state.distracted[seat]);
+      byId(`player-${position}`).classList.toggle("skipped", state.skipNextTurn[seat]);
+      byId(`player-${position}`).classList.toggle("immune", state.emptyFortImmunity[seat]);
       byId(`name-${position}`).textContent = NAMES[seat];
       byId(`avatar-${position}`).textContent = position === 0 ? "你" : NAMES[seat].slice(0, 1);
     }
@@ -889,8 +891,10 @@
       state.distracted[target] = true;
       lastSkillEffect = `${NAMES[user]} 对 ${NAMES[target]} 使用声东击西，锁定对方技能`;
       pushSkillLog("SoundEastWest", `${NAMES[target]} 🔒技能封锁`);
-      // 施放反馈弹窗(和明察秋毫同样式)
-      showDistractDialog(`【声东击西】已锁定 ${NAMES[target]}！对方需用一张技能才能解除`, null, null);
+      // 仅被锁的是本地玩家本人时立即通知(本人可见); 其他玩家被锁不弹全局窗
+      if (state.localPlayer === target) {
+        showToast("你已被声东击西技能锁定！下回合出技能将解除锁定", "error");
+      }
     }
     return true;
   }
@@ -1933,6 +1937,15 @@
       return { ok, distracted: state.distracted[state.localPlayer], skillLog: state.skillLog ? state.skillLog.slice(-4) : [] };
     },
     __getState() { return { hand: state.hands[state.localPlayer].length, pile: state.discardPile.length, skillMode: state.skillMode, skillLog: state.skillLog ? state.skillLog.slice(-4) : [] }; },
+    __grantSkill(type) {
+      // 给本地玩家塞一张技能卡(测试用)
+      if (!state.skillMode) state.skillMode = true;
+      if (!state.skillCards) state.skillCards = [[], [], [], []];
+      if (!state.skillCards[state.localPlayer]) state.skillCards[state.localPlayer] = [];
+      state.skillCards[state.localPlayer].push({ type });
+      render();
+      return state.skillCards[state.localPlayer].map(s => s.type);
+    },
     __setDebug({ handCards, pileCards, distracted, emptyFortImmunity }) {
       if (handCards !== undefined) state.hands[state.localPlayer] = Array.from({length: handCards}, (_,i)=>({id:'t'+i, suit:'♠', rank:String(i), copy:2, joker:false}));
       if (pileCards !== undefined) state.discardPile = Array.from({length: pileCards}, (_,i)=>({id:'p'+i, suit:'♣', rank:String(i), copy:2, joker:false}));
